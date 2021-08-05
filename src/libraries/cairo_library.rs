@@ -36,8 +36,6 @@ impl CairoLibrary {
     }
 
     fn compile_unix(&self, context: &LibraryCompilationContext) -> Result<(), Box<dyn Error>> {
-        //self.patch_unix_makefile(context)?;
-
         let out_dir = self.native_library_prefix(context);
         if !out_dir.exists() {
             std::fs::create_dir_all(&out_dir)
@@ -50,10 +48,6 @@ impl CairoLibrary {
         if let Ok(ref path) = std::env::var("PKG_CONFIG_PATH") {
             std::env::split_paths(path).for_each(|path| pkg_config_paths.push(path));
         }
-        std::env::set_var(
-            "PKG_CONFIG_PATH",
-            std::env::join_paths(&pkg_config_paths).unwrap(),
-        );
 
         let mut cpp_flags = std::env::var("CPPFLAGS").unwrap_or_else(|_| "".to_owned());
         cpp_flags = format!(
@@ -61,23 +55,22 @@ impl CairoLibrary {
             cpp_flags,
             self.dependencies.include_headers_flags(context)
         );
-        std::env::set_var("CPPFLAGS", &cpp_flags);
-        std::env::set_var("LIBS", "-lbz2");
-
-        println!("PKG_CONFIG_PATH={:?}", std::env::var("PKG_CONFIG_PATH"));
-        println!("CPPFLAGS={:?}", std::env::var("CPPFLAGS"));
-        println!("LDFLAGS={:?}", std::env::var("LDFLAGS"));
-
-        std::env::set_var(
-            "FREETYPE_CONFIG",
-            FreetypeLibrary::default()
-                .pkg_config_directory(context)
-                .expect("Could not find freetype's pkgconfig"),
-        );
 
         let mut command = Command::new(self.source_directory(context).join("autogen.sh"));
         command
             .current_dir(&out_dir)
+            .env(
+                "PKG_CONFIG_PATH",
+                std::env::join_paths(&pkg_config_paths).unwrap(),
+            )
+            .env(
+                "FREETYPE_CONFIG",
+                FreetypeLibrary::default()
+                    .pkg_config_directory(context)
+                    .expect("Could not find freetype's pkgconfig"),
+            )
+            .env("CPPFLAGS", &cpp_flags)
+            .env("LIBS", "-lbz2")
             .arg("--enable-ft=yes")
             .arg(format!(
                 "--prefix={}",
@@ -101,7 +94,11 @@ impl CairoLibrary {
         }
 
         let mut command = Command::new("make");
-        command.current_dir(&makefile_dir).arg("install");
+        command
+            .current_dir(&makefile_dir)
+            .env("CPPFLAGS", &cpp_flags)
+            .env("LIBS", "-lbz2")
+            .arg("install");
 
         println!("{:?}", &command);
 

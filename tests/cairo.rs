@@ -1,13 +1,18 @@
 use shared_library_builder::{CairoLibrary, Library, LibraryCompilationContext};
 use std::error::Error;
-use tempdir::TempDir;
 
 #[test]
 pub fn shared_release() -> Result<(), Box<dyn Error>> {
     let mut lib = CairoLibrary::new();
     lib.be_shared();
 
-    let root = TempDir::new("build")?;
+    let root = std::path::PathBuf::from("target/tests/cairo");
+    if root.exists() {
+        std::fs::remove_dir_all(&root)?
+    }
+    if !root.exists() {
+        std::fs::create_dir_all(&root)?
+    }
     let context = LibraryCompilationContext::new_release(&root);
 
     let native_library_prefix = lib.native_library_prefix(&context);

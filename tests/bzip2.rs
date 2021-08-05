@@ -1,13 +1,18 @@
 use shared_library_builder::{BZip2Library, Library, LibraryCompilationContext};
 use std::error::Error;
-use tempdir::TempDir;
 
 #[test]
 pub fn static_release() -> Result<(), Box<dyn Error>> {
     let mut lib = BZip2Library::default();
     lib.be_static();
 
-    let root = TempDir::new("build")?;
+    let root = std::path::PathBuf::from("target/tests/bzip2");
+    if root.exists() {
+        std::fs::remove_dir_all(&root)?
+    }
+    if !root.exists() {
+        std::fs::create_dir_all(&root)?
+    }
 
     let context = LibraryCompilationContext::new_release(&root);
 
