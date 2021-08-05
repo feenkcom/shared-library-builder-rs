@@ -29,8 +29,8 @@ pub fn git() -> CMakeLibrary {
     );
 
     CMakeLibrary::new("git2", LibraryLocation::Multiple(vec![libssh2, libgit2]))
-        .define("EMBED_SSH_PATH", "../../ssh2")
-        .define("BUILD_CLAR", "OFF")
+        .define_common("EMBED_SSH_PATH", "../../ssh2")
+        .define_common("BUILD_CLAR", "OFF")
 }
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
