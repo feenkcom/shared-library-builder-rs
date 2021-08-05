@@ -1,9 +1,5 @@
-use shared_library_builder::{
-    CairoLibrary, FreetypeLibrary, Library, LibraryCompilationContext, OpenSSLLibrary,
-    PixmanLibrary,
-};
+use shared_library_builder::{Library, LibraryCompilationContext, OpenSSLLibrary};
 use std::error::Error;
-use std::path::PathBuf;
 use tempdir::TempDir;
 
 #[test]

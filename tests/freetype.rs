@@ -1,6 +1,5 @@
-use shared_library_builder::{FreetypeLibrary, Library, LibraryCompilationContext, PixmanLibrary};
+use shared_library_builder::{FreetypeLibrary, Library, LibraryCompilationContext};
 use std::error::Error;
-use std::path::PathBuf;
 use tempdir::TempDir;
 
 #[test]

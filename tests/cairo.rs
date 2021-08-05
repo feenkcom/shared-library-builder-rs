@@ -1,13 +1,11 @@
-use shared_library_builder::{
-    CairoLibrary, FreetypeLibrary, Library, LibraryCompilationContext, PixmanLibrary,
-};
+use shared_library_builder::{CairoLibrary, Library, LibraryCompilationContext};
 use std::error::Error;
-use std::path::PathBuf;
 use tempdir::TempDir;
 
 #[test]
 pub fn shared_release() -> Result<(), Box<dyn Error>> {
     let mut lib = CairoLibrary::new();
+    lib.be_shared();
 
     let root = TempDir::new("build")?;
     let context = LibraryCompilationContext::new_release(&root);

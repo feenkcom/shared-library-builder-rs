@@ -1,4 +1,4 @@
-use shared_library_builder::{BZip2Library, Library, LibraryCompilationContext, NativeLibrary};
+use shared_library_builder::{BZip2Library, Library, LibraryCompilationContext};
 use std::error::Error;
 use tempdir::TempDir;
 
