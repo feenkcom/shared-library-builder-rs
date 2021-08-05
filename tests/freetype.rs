@@ -6,7 +6,7 @@ pub fn static_release() -> Result<(), Box<dyn Error>> {
     let mut lib = FreetypeLibrary::default();
     lib.be_static();
 
-    let root = std::path::PathBuf::from("target/tests/freetype");
+    let root = std::path::PathBuf::from("target/tests/freetype-static");
     if root.exists() {
         std::fs::remove_dir_all(&root)?
     }
@@ -49,7 +49,13 @@ pub fn shared_release() -> Result<(), Box<dyn Error>> {
     let mut lib = FreetypeLibrary::default();
     lib.be_shared();
 
-    let root = TempDir::new("build")?;
+    let root = std::path::PathBuf::from("target/tests/freetype-shared");
+    if root.exists() {
+        std::fs::remove_dir_all(&root)?
+    }
+    if !root.exists() {
+        std::fs::create_dir_all(&root)?
+    }
 
     let context = LibraryCompilationContext::new_release(&root);
 
