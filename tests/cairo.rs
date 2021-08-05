@@ -20,24 +20,48 @@ pub fn shared_release() -> Result<(), Box<dyn Error>> {
 
     lib.compile(&context)?;
 
-    assert_eq!(
-        lib.pkg_config_directory(&context),
-        Some(
-            lib.native_library_prefix(&context)
-                .join("lib")
-                .join("pkgconfig")
-        )
-    );
+    let pkg_config_directory = lib.pkg_config_directory(&context);
+    if context.is_windows() {
+        assert_eq!(pkg_config_directory, None);
+    } else {
+        assert_eq!(
+            pkg_config_directory,
+            Some(
+                lib.native_library_prefix(&context)
+                    .join("lib")
+                    .join("pkgconfig")
+            )
+        );
+    }
 
-    assert_eq!(
-        lib.native_library_include_headers(&context),
-        vec![lib.native_library_prefix(&context).join("include")]
-    );
+    let native_library_include_headers = lib.native_library_include_headers(&context);
+    if context.is_windows() {
+        assert_eq!(
+            native_library_include_headers,
+            vec![lib.native_library_prefix(&context)]
+        );
+    } else {
+        assert_eq!(
+            native_library_include_headers,
+            vec![lib.native_library_prefix(&context).join("include")]
+        );
+    }
 
-    assert_eq!(
-        lib.native_library_linker_libraries(&context),
-        vec![lib.native_library_prefix(&context).join("lib")]
-    );
+    let native_library_linker_libraries = lib.native_library_linker_libraries(&context);
+    if context.is_windows() {
+        assert_eq!(
+            native_library_linker_libraries,
+            vec![lib
+                .native_library_prefix(&context)
+                .join("cairo")
+                .join(context.profile())]
+        );
+    } else {
+        assert_eq!(
+            native_library_linker_libraries,
+            vec![lib.native_library_prefix(&context).join("lib")]
+        );
+    }
 
     Ok(())
 }

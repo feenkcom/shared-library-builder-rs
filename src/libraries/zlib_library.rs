@@ -26,9 +26,9 @@ impl ZLibLibrary {
             .define_static("BUILD_SHARED_LIBS", "OFF")
             .define_shared("BUILD_SHARED_LIBS", "ON")
             .delete(FileNamed::any_named(vec![
-                FileNamed::wildmatch("*zlib.*"), // windows
-                FileNamed::wildmatch("*.dylib"), // mac
-                FileNamed::wildmatch("libz.so*"),    // linux
+                FileNamed::wildmatch("*zlib.*"),  // windows
+                FileNamed::wildmatch("*.dylib"),  // mac
+                FileNamed::wildmatch("libz.so*"), // linux
             ])),
         )
     }

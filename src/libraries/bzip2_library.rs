@@ -2,7 +2,6 @@ use crate::{
     CMakeLibrary, CompiledLibraryName, Library, LibraryCompilationContext, LibraryDependencies,
     LibraryGitLocation, LibraryLocation, LibraryOptions,
 };
-use file_matcher::FileNamed;
 use std::error::Error;
 use std::path::PathBuf;
 
@@ -30,7 +29,7 @@ impl BZip2Library {
             .define_static("ENABLE_SHARED_LIB", "OFF")
             .define_shared("ENABLE_STATIC_LIB", "OFF")
             .define_shared("ENABLE_SHARED_LIB", "ON")
-            .define_shared("BUILD_SHARED_LIBS", "ON")
+            .define_shared("BUILD_SHARED_LIBS", "ON"),
         )
     }
 }

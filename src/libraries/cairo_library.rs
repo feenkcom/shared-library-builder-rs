@@ -1,6 +1,6 @@
 use crate::{
-    FreetypeLibrary, Library, LibraryCompilationContext, LibraryDependencies, LibraryLocation,
-    LibraryOptions, PixmanLibrary, PngLibrary, TarArchive, TarUrlLocation, ZLibLibrary,
+    FreetypeLibrary, Library, LibraryCompilationContext, LibraryDependencies, LibraryGitLocation,
+    LibraryLocation, LibraryOptions, PixmanLibrary, PngLibrary, ZLibLibrary,
 };
 use std::error::Error;
 use std::fs::{read_to_string, OpenOptions};
@@ -25,10 +25,8 @@ impl Default for CairoLibrary {
 impl CairoLibrary {
     pub fn new() -> Self {
         Self {
-            location: LibraryLocation::Tar(
-                TarUrlLocation::new("https://cairographics.org/snapshots/cairo-1.17.4.tar.xz")
-                    .archive(TarArchive::Xz)
-                    .sources(Path::new("cairo-1.17.4")),
+            location: LibraryLocation::Git(
+                LibraryGitLocation::new("https://github.com/freedesktop/cairo.git").branch("1.16"),
             ),
             dependencies: LibraryDependencies::new()
                 .push(PixmanLibrary::new().into())
@@ -38,7 +36,7 @@ impl CairoLibrary {
     }
 
     fn compile_unix(&self, context: &LibraryCompilationContext) -> Result<(), Box<dyn Error>> {
-        self.patch_unix_makefile(context)?;
+        //self.patch_unix_makefile(context)?;
 
         let out_dir = self.native_library_prefix(context);
         if !out_dir.exists() {
@@ -77,7 +75,7 @@ impl CairoLibrary {
                 .expect("Could not find freetype's pkgconfig"),
         );
 
-        let mut command = Command::new(self.source_directory(context).join("configure"));
+        let mut command = Command::new(self.source_directory(context).join("autogen.sh"));
         command
             .current_dir(&out_dir)
             .arg("--enable-ft=yes")
