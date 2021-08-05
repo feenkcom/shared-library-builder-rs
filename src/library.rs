@@ -56,6 +56,7 @@ pub trait Library: Debug + Send + Sync {
         if let Some(dependencies) = self.dependencies() {
             dependencies.force_compile(context)?;
         }
+        println!("About to build {} from\n{:?}", self.name(), self);
         self.force_compile(context)?;
         Ok(())
     }

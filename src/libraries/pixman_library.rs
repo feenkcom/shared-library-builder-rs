@@ -224,6 +224,11 @@ impl Library for PixmanLibrary {
     fn ensure_requirements(&self, options: &LibraryCompilationContext) {
         which::which("make").expect("Could not find `make`");
 
+        if options.is_unix() {
+            which::which("autoreconf").expect("Could not find `autoreconf`");
+            which::which("aclocal").expect("Could not find `aclocal`");
+        }
+
         if options.target().is_windows() {
             which::which("coreutils").expect("Could not find `coreutils`");
 

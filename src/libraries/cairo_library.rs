@@ -391,6 +391,7 @@ impl Library for CairoLibrary {
 
         if options.is_unix() {
             which::which("autoreconf").expect("Could not find `autoreconf`");
+            which::which("aclocal").expect("Could not find `aclocal`");
         }
 
         if options.is_windows() {
