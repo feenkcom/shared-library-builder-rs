@@ -102,6 +102,7 @@ impl LibraryDependencies {
             if let Some(dependencies) = dependency.dependencies() {
                 dependencies.force_compile(options)?;
             }
+            println!("About to build {} from\n{:?}", dependency.name(), dependency);
             dependency.force_compile(options)?;
         }
         Ok(())
