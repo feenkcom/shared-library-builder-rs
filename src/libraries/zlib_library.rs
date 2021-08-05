@@ -28,7 +28,7 @@ impl ZLibLibrary {
             .delete(FileNamed::any_named(vec![
                 FileNamed::wildmatch("*zlib.*"), // windows
                 FileNamed::wildmatch("*.dylib"), // mac
-                FileNamed::wildmatch("*.so"),    // linux
+                FileNamed::wildmatch("libz.so*"),    // linux
             ])),
         )
     }
