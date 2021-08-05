@@ -10,10 +10,14 @@ pub fn shared_release() -> Result<(), Box<dyn Error>> {
     let root = TempDir::new("build")?;
     let context = LibraryCompilationContext::new_release(&root);
 
-    assert_eq!(
-        lib.native_library_prefix(&context),
-        context.build_root().join("cairo")
-    );
+    let native_library_prefix = lib.native_library_prefix(&context);
+
+    if context.is_windows() {
+        assert_eq!(native_library_prefix, context.sources_root().join("cairo"));
+    } else {
+        assert_eq!(native_library_prefix, context.build_root().join("cairo"));
+    }
+
     lib.compile(&context)?;
 
     assert_eq!(
