@@ -42,6 +42,7 @@ pipeline {
                     }
 
                     steps {
+                        sh 'if [ -d target ]; then rm -Rf target; fi'
                         sh 'git clean -fdx'
                         sh "cargo build --release --all-features"
                         sh "cargo test --all-features"
@@ -59,6 +60,7 @@ pipeline {
                     }
 
                     steps {
+                        sh 'if [ -d target ]; then rm -Rf target; fi'
                         sh 'git clean -fdx'
                         sh "cargo build --release --all-features"
                         sh "cargo test --all-features"
@@ -75,6 +77,7 @@ pipeline {
                     }
 
                     steps {
+                        sh 'if [ -d target ]; then rm -Rf target; fi'
                         sh 'git clean -fdx'
                         sh "cargo build --release --all-features"
                         sh "cargo test --all-features"
@@ -98,6 +101,7 @@ pipeline {
                     }
 
                     steps {
+                        powershell 'Remove-Item -Force -Recurse -Path target -ErrorAction Ignore'
                         powershell 'git clean -fdx'
                         powershell "cargo build --release --all-features"
                         powershell "cargo test --all-features"
