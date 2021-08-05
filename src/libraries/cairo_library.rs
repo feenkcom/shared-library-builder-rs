@@ -390,7 +390,7 @@ impl Library for CairoLibrary {
         which::which("make").expect("Could not find `make`");
 
         if options.is_unix() {
-            which::which("autoreconf").expect("Could not find `autoreconf`")
+            which::which("autoreconf").expect("Could not find `autoreconf`");
         }
 
         if options.is_windows() {
