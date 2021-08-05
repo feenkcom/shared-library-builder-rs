@@ -33,7 +33,12 @@ pub fn static_release() -> Result<(), Box<dyn Error>> {
 
     assert_eq!(
         lib.native_library_include_headers(&context),
-        vec![lib.native_library_prefix(&context).join("include")]
+        vec![
+            lib.native_library_prefix(&context).join("include"),
+            lib.native_library_prefix(&context)
+                .join("include")
+                .join("freetype2")
+        ]
     );
 
     assert_eq!(

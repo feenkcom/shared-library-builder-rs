@@ -74,7 +74,13 @@ impl Library for FreetypeLibrary {
     }
 
     fn native_library_include_headers(&self, context: &LibraryCompilationContext) -> Vec<PathBuf> {
-        self.0.native_library_include_headers(context)
+        let mut headers = self.0.native_library_include_headers(context);
+        headers.push(
+            self.native_library_prefix(&context)
+                .join("include")
+                .join("freetype2"),
+        );
+        headers
     }
 
     fn native_library_linker_libraries(&self, context: &LibraryCompilationContext) -> Vec<PathBuf> {

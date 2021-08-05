@@ -1,5 +1,5 @@
 use crate::{
-    FreetypeLibrary, Library, LibraryCompilationContext, LibraryDependencies, LibraryGitLocation,
+    FreetypeLibrary, Library, LibraryCompilationContext, LibraryDependencies,
     LibraryLocation, LibraryOptions, PixmanLibrary, PngLibrary, TarArchive, TarUrlLocation,
     ZLibLibrary,
 };
@@ -103,6 +103,16 @@ impl CairoLibrary {
             .current_dir(&makefile_dir)
             .env("CPPFLAGS", &cpp_flags)
             .env("LIBS", "-lbz2")
+            .env(
+                "PKG_CONFIG_PATH",
+                std::env::join_paths(&pkg_config_paths).unwrap(),
+            )
+            .env(
+                "FREETYPE_CONFIG",
+                FreetypeLibrary::default()
+                    .pkg_config_directory(context)
+                    .expect("Could not find freetype's pkgconfig"),
+            )
             .arg("install");
 
         println!("{:?}", &command);

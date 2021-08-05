@@ -1,5 +1,5 @@
 use crate::{
-    Library, LibraryCompilationContext, LibraryDependencies, LibraryGitLocation, LibraryLocation,
+    Library, LibraryCompilationContext, LibraryDependencies, LibraryLocation,
     LibraryOptions, TarArchive, TarUrlLocation,
 };
 use std::error::Error;
