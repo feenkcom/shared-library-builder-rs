@@ -27,12 +27,10 @@ impl BZip2Library {
             .define_common("ENABLE_LIB_ONLY", "ON")
             .define_static("ENABLE_STATIC_LIB", "ON")
             .define_static("BUILD_SHARED_LIBS", "OFF")
+            .define_static("ENABLE_SHARED_LIB", "OFF")
             .define_shared("ENABLE_STATIC_LIB", "OFF")
+            .define_shared("ENABLE_SHARED_LIB", "ON")
             .define_shared("BUILD_SHARED_LIBS", "ON")
-            .delete(FileNamed::any_named(vec![
-                FileNamed::wildmatch("*.dylib"), // mac
-                FileNamed::wildmatch("*.so"),    // linux
-            ])),
         )
     }
 }
