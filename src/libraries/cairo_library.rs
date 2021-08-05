@@ -93,6 +93,8 @@ impl CairoLibrary {
             panic!("Could not configure {}", self.name());
         }
 
+        self.patch_unix_makefile(context)?;
+
         let mut command = Command::new("make");
         command
             .current_dir(&makefile_dir)

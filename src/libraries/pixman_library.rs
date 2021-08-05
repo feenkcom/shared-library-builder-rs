@@ -1,7 +1,4 @@
-use crate::{
-    Library, LibraryCompilationContext, LibraryDependencies, LibraryLocation, LibraryOptions,
-    TarArchive, TarUrlLocation,
-};
+use crate::{Library, LibraryCompilationContext, LibraryDependencies, LibraryLocation, LibraryOptions, TarArchive, TarUrlLocation, LibraryGitLocation};
 use std::error::Error;
 use std::fs::{read_to_string, OpenOptions};
 use std::io::Write;
@@ -24,10 +21,8 @@ impl Default for PixmanLibrary {
 impl PixmanLibrary {
     pub fn new() -> Self {
         Self {
-            location: LibraryLocation::Tar(
-                TarUrlLocation::new("https://www.cairographics.org/releases/pixman-0.40.0.tar.gz")
-                    .archive(TarArchive::Gz)
-                    .sources(Path::new("pixman-0.40.0")),
+            location: LibraryLocation::Git(
+                LibraryGitLocation::new("https://github.com/freedesktop/pixman.git").tag("pixman-0.40.0"),
             ),
             options: Default::default(),
         }
@@ -98,8 +93,6 @@ impl PixmanLibrary {
     }
 
     fn compile_unix(&self, options: &LibraryCompilationContext) -> Result<(), Box<dyn Error>> {
-        self.patch_makefile(options)?;
-
         let out_dir = self.native_library_prefix(options);
         if !out_dir.exists() {
             std::fs::create_dir_all(&out_dir)
@@ -107,7 +100,7 @@ impl PixmanLibrary {
         }
         let makefile_dir = out_dir.clone();
 
-        let mut command = Command::new(self.source_directory(options).join("configure"));
+        let mut command = Command::new(self.source_directory(options).join("autogen.sh"));
         command
             .current_dir(&out_dir)
             .arg(format!(
@@ -128,6 +121,8 @@ impl PixmanLibrary {
         if !configure.success() {
             panic!("Could not configure {}", self.name());
         }
+
+        self.patch_makefile(options)?;
 
         let make = Command::new("make")
             .current_dir(&makefile_dir)
