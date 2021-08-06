@@ -10,6 +10,27 @@ pub struct LibraryCompilationContext {
 }
 
 impl LibraryCompilationContext {
+    pub fn new(
+        sources_root: impl AsRef<Path>,
+        build_root: impl AsRef<Path>,
+        target: LibraryTarget,
+        debug: bool,
+    ) -> Self {
+        let sources_root = to_absolute::canonicalize(sources_root.as_ref()).unwrap_or_else(|_| {
+            panic!("Failed to canonicalize {}", sources_root.as_ref().display())
+        });
+
+        let build_root = to_absolute::canonicalize(build_root.as_ref())
+            .unwrap_or_else(|_| panic!("Failed to canonicalize {}", build_root.as_ref().display()));
+
+        Self {
+            sources_root,
+            build_root,
+            target,
+            debug,
+        }
+    }
+    
     pub fn new_release(root: impl AsRef<Path>) -> Self {
         let root = to_absolute::canonicalize(root.as_ref())
             .unwrap_or_else(|_| panic!("Failed to canonicalize {}", root.as_ref().display()));
