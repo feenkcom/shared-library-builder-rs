@@ -27,7 +27,7 @@ impl CairoLibrary {
     pub fn new() -> Self {
         Self {
             location: LibraryLocation::Tar(
-                TarUrlLocation::new("https://cairographics.org/snapshots/cairo-1.17.4.tar.xz")
+                TarUrlLocation::new("https://dl.feenk.com/cairo/cairo-1.17.4.tar.xz")
                     .archive(TarArchive::Xz)
                     .sources(Path::new("cairo-1.17.4")),
             ),

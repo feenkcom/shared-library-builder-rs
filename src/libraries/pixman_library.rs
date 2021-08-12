@@ -25,7 +25,7 @@ impl PixmanLibrary {
     pub fn new() -> Self {
         Self {
             location: LibraryLocation::Tar(
-                TarUrlLocation::new("https://www.cairographics.org/releases/pixman-0.40.0.tar.gz")
+                TarUrlLocation::new("https://dl.feenk.com/cairo/pixman-0.40.0.tar.gz")
                     .archive(TarArchive::Gz)
                     .sources(Path::new("pixman-0.40.0")),
             ),

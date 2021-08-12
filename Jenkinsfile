@@ -45,7 +45,7 @@ pipeline {
                         sh 'if [ -d target ]; then rm -Rf target; fi'
                         sh 'git clean -fdx'
                         sh "cargo build --release --all-features"
-                        sh "cargo test --all-features -- --nocapture"
+                        sh "cargo test --all-features -- --nocapture --test-threads=1"
                         sh "cargo clippy --manifest-path Cargo.toml -- -W clippy::style -W clippy::correctness -W clippy::complexity -W clippy::perf"
                     }
                 }
@@ -63,7 +63,7 @@ pipeline {
                         sh 'if [ -d target ]; then rm -Rf target; fi'
                         sh 'git clean -fdx'
                         sh "cargo build --release --all-features"
-                        sh "cargo test --all-features -- --nocapture"
+                        sh "cargo test --all-features -- --nocapture --test-threads=1"
                         sh "cargo clippy --manifest-path Cargo.toml -- -W clippy::style -W clippy::correctness -W clippy::complexity -W clippy::perf"
                     }
                 }
@@ -80,7 +80,7 @@ pipeline {
                         sh 'if [ -d target ]; then rm -Rf target; fi'
                         sh 'git clean -fdx'
                         sh "cargo build --release --all-features"
-                        sh "cargo test --all-features -- --nocapture"
+                        sh "cargo test --all-features -- --nocapture --test-threads=1"
                         sh "cargo clippy --manifest-path Cargo.toml -- -W clippy::style -W clippy::correctness -W clippy::complexity -W clippy::perf"
                     }
                 }
@@ -104,7 +104,7 @@ pipeline {
                         powershell 'Remove-Item -Force -Recurse -Path target -ErrorAction Ignore'
                         powershell 'git clean -fdx'
                         powershell "cargo build --release --all-features "
-                        powershell "cargo test --all-features -- --nocapture"
+                        powershell "cargo test --all-features -- --nocapture --test-threads=1"
                         powershell "cargo clippy --manifest-path Cargo.toml -- -W clippy::style -W clippy::correctness -W clippy::complexity -W clippy::perf"
                     }
                 }
