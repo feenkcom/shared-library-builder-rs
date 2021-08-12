@@ -18,19 +18,21 @@ pub use rust_library::RustLibrary;
 
 #[cfg(target_os = "windows")]
 pub fn git() -> CMakeLibrary {
-    let libssh2 = LibraryLocation::Git(
-        LibraryGitLocation::new("https://github.com/libssh2/libssh2.git")
-            .directory("ssh2")
-            .tag("libssh2-1.9.0"),
+    let libssh2 = CMakeLibrary::new(
+        "ssh2",
+        LibraryLocation::Git(
+            LibraryGitLocation::new("https://github.com/libssh2/libssh2.git").tag("libssh2-1.9.0"),
+        ),
     );
 
     let libgit2 = LibraryLocation::Git(
         LibraryGitLocation::new("https://github.com/libgit2/libgit2.git").tag("v1.1.1"),
     );
 
-    CMakeLibrary::new("git2", LibraryLocation::Multiple(vec![libssh2, libgit2]))
-        .define_common("EMBED_SSH_PATH", "../../ssh2")
+    CMakeLibrary::new("git2", libgit2)
+        .define_common("CMAKE_SHARED_LINKER_FLAGS:STRING", "-lssl -lcrypto")
         .define_common("BUILD_CLAR", "OFF")
+        .depends(Box::new(libssh2))
 }
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
