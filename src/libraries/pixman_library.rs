@@ -1,6 +1,6 @@
 use crate::{
-    Library, LibraryCompilationContext, LibraryDependencies, LibraryLocation,
-    LibraryOptions, TarArchive, TarUrlLocation,
+    Library, LibraryCompilationContext, LibraryDependencies, LibraryLocation, LibraryOptions,
+    TarArchive, TarUrlLocation,
 };
 use std::error::Error;
 use std::fs::{read_to_string, OpenOptions};

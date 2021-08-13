@@ -1,7 +1,6 @@
 use crate::{
-    FreetypeLibrary, Library, LibraryCompilationContext, LibraryDependencies,
-    LibraryLocation, LibraryOptions, PixmanLibrary, PngLibrary, TarArchive, TarUrlLocation,
-    ZLibLibrary,
+    FreetypeLibrary, Library, LibraryCompilationContext, LibraryDependencies, LibraryLocation,
+    LibraryOptions, PixmanLibrary, PngLibrary, TarArchive, TarUrlLocation, ZLibLibrary,
 };
 use std::error::Error;
 use std::fs::{read_to_string, OpenOptions};

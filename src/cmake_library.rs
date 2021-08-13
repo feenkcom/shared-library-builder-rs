@@ -2,7 +2,7 @@ use crate::{
     CompiledLibraryName, Library, LibraryCompilationContext, LibraryDependencies, LibraryLocation,
     LibraryOptions, LibraryTarget,
 };
-use file_matcher::FileNamed;
+use file_matcher::{FileNamed, FilesNamed};
 use rustc_version::version_meta;
 use std::error::Error;
 use std::path::{Path, PathBuf};
@@ -187,6 +187,14 @@ impl Library for CMakeLibrary {
             config.cflag(format!("-L{}", library_path.display()));
         }
 
+        let mut pkg_config_paths = self.all_pkg_config_directories(options);
+        if let Ok(ref path) = std::env::var("PKG_CONFIG_PATH") {
+            std::env::split_paths(path).for_each(|path| pkg_config_paths.push(path));
+        }
+        let pkg_config_path = std::env::join_paths(&pkg_config_paths)?;
+
+        config.env("PKG_CONFIG_PATH", &pkg_config_path);
+
         let mut defines = self.defines.common_defines().clone();
         if self.is_static() {
             defines.extend(self.defines.static_defines().clone())
@@ -204,6 +212,24 @@ impl Library for CMakeLibrary {
             let lib = entry_to_delete.within(out_dir.join("lib"));
             std::fs::remove_file(lib.as_path_buf().unwrap()).unwrap();
         }
+
+        if options.is_windows() {
+            let libraries = FilesNamed::wildmatch("lib*.lib")
+                .within(out_dir.join("lib"))
+                .find()?;
+
+            for library in libraries {
+                if let Some(file_name) = library.file_name() {
+                    if let Some(file_name) = file_name.to_str() {
+                        if let Some(new_name) = file_name.strip_prefix("lib") {
+                            let copy_as = library.with_file_name(new_name);
+                            std::fs::copy(&library, &copy_as)?;
+                        }
+                    }
+                }
+            }
+        }
+
         Ok(())
     }
 

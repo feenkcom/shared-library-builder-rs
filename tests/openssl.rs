@@ -2,8 +2,7 @@ use shared_library_builder::{Library, LibraryCompilationContext, OpenSSLLibrary}
 use std::error::Error;
 
 #[test]
-#[cfg(not(target_os = "windows"))]
-pub fn shared_release() -> Result<(), Box<dyn Error>> {
+pub fn static_release() -> Result<(), Box<dyn Error>> {
     let mut lib = OpenSSLLibrary::new();
     lib.be_static();
 

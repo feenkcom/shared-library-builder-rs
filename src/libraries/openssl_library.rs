@@ -3,6 +3,7 @@ use crate::{
     LibraryOptions, LibraryTarget,
 };
 use std::error::Error;
+use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -22,8 +23,8 @@ impl OpenSSLLibrary {
     pub fn new() -> Self {
         Self {
             location: LibraryLocation::Git(
-                LibraryGitLocation::new("https://github.com/openssl/openssl.git")
-                    .tag("OpenSSL_1_1_1k"),
+                LibraryGitLocation::new("https://github.com/syrel/openssl.git")
+                    .branch("OpenSSL_1_1_1-stable-Windows-pkgconfig"),
             ),
             options: Default::default(),
         }
@@ -36,6 +37,21 @@ impl OpenSSLLibrary {
             LibraryTarget::X8664pcWindowsMsvc => "VC-WIN64A",
             LibraryTarget::X8664UnknownlinuxGNU => "linux-x86_64-clang",
         }
+    }
+
+    pub fn create_windows_bat(
+        &self,
+        options: &LibraryCompilationContext,
+    ) -> Result<(), Box<dyn Error>> {
+        let makefile_dir = options.build_root().join(self.name());
+        let mut file = std::fs::File::create(makefile_dir.join("nmake.bat"))?;
+
+        let vc = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Auxiliary\\Build";
+        writeln!(file, "call \"{}\\vcvarsall.bat\" x64", vc)?;
+        writeln!(file, "ping localhost -n 5 >nul")?;
+        writeln!(file, "nmake.exe install_sw")?;
+
+        Ok(())
     }
 }
 
@@ -67,6 +83,10 @@ impl Library for OpenSSLLibrary {
                 .unwrap_or_else(|_| panic!("Could not create {:?}", &out_dir));
         }
 
+        if options.is_windows() {
+            self.create_windows_bat(options)?;
+        }
+
         let makefile_dir = options.build_root().join(self.name());
 
         let mut command = Command::new("perl");
@@ -95,11 +115,19 @@ impl Library for OpenSSLLibrary {
             panic!("Could not configure {}", self.name());
         }
 
-        let make = Command::new("make")
-            .current_dir(&makefile_dir)
-            .arg("install_sw")
-            .status()
-            .unwrap();
+        let make = if options.is_windows() {
+            Command::new("cmd")
+                .current_dir(&makefile_dir)
+                .args(&["/C", "nmake.bat"])
+                .status()
+                .unwrap()
+        } else {
+            Command::new("make")
+                .current_dir(&makefile_dir)
+                .arg("install_sw")
+                .status()
+                .unwrap()
+        };
 
         if !make.success() {
             panic!("Could not compile {}", self.name());
@@ -111,8 +139,15 @@ impl Library for OpenSSLLibrary {
         unimplemented!()
     }
 
-    fn ensure_requirements(&self, _options: &LibraryCompilationContext) {
-        which::which("make").expect("Could not find `make`");
+    fn ensure_requirements(&self, options: &LibraryCompilationContext) {
+        which::which("perl").expect("Could not find `perl`");
+
+        if options.is_unix() {
+            which::which("make").expect("Could not find `make`");
+        }
+        if options.is_windows() {
+            which::which("nmake").expect("Could not find `nmake`");
+        }
     }
 
     fn native_library_prefix(&self, options: &LibraryCompilationContext) -> PathBuf {

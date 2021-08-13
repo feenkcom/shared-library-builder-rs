@@ -30,7 +30,7 @@ impl LibraryCompilationContext {
             debug,
         }
     }
-    
+
     pub fn new_release(root: impl AsRef<Path>) -> Self {
         let root = to_absolute::canonicalize(root.as_ref())
             .unwrap_or_else(|_| panic!("Failed to canonicalize {}", root.as_ref().display()));
