@@ -37,6 +37,8 @@ pub fn git() -> CMakeLibrary {
     )
     .compiled_name(CompiledLibraryName::Matching("git2".to_string()))
     .define_common("BUILD_CLAR", "OFF")
+    .define_common("REGEX_BACKEND", "builtin")
+    .define_common("USE_BUNDLED_ZLIB", "ON")
     .depends(Box::new(libssh2))
 }
 
