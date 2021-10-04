@@ -235,3 +235,9 @@ impl Library for OpenSSLLibrary {
         Box::new(Clone::clone(self))
     }
 }
+
+impl From<OpenSSLLibrary> for Box<dyn Library> {
+    fn from(library: OpenSSLLibrary) -> Self {
+        Box::new(library)
+    }
+}
