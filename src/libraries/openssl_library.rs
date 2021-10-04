@@ -172,8 +172,7 @@ impl Library for OpenSSLLibrary {
         if context.is_windows() {
             let lib = self
                 .native_library_prefix(context)
-                .join("src")
-                .join(context.profile());
+                .join("bin");
             return vec![lib];
         }
         vec![]
