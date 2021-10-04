@@ -1,3 +1,4 @@
+use crate::library::CompiledLibraryName;
 use crate::{
     Library, LibraryCompilationContext, LibraryDependencies, LibraryGitLocation, LibraryLocation,
     LibraryOptions, LibraryTarget,
@@ -8,9 +9,16 @@ use std::path::PathBuf;
 use std::process::Command;
 
 #[derive(Debug, Clone)]
+enum LibraryArtefact {
+    Crypto,
+    Ssl,
+}
+
+#[derive(Debug, Clone)]
 pub struct OpenSSLLibrary {
     location: LibraryLocation,
     options: LibraryOptions,
+    artefact: LibraryArtefact,
 }
 
 impl Default for OpenSSLLibrary {
@@ -27,7 +35,18 @@ impl OpenSSLLibrary {
                     .branch("OpenSSL_1_1_1-stable-Windows-pkgconfig"),
             ),
             options: Default::default(),
+            artefact: LibraryArtefact::Crypto,
         }
+    }
+
+    pub fn be_ssl(mut self) -> Self {
+        self.artefact = LibraryArtefact::Ssl;
+        self
+    }
+
+    pub fn be_crypto(mut self) -> Self {
+        self.artefact = LibraryArtefact::Crypto;
+        self
     }
 
     pub fn compiler(&self, options: &LibraryCompilationContext) -> &str {
@@ -61,7 +80,17 @@ impl Library for OpenSSLLibrary {
     }
 
     fn name(&self) -> &str {
-        "openssl"
+        match self.artefact {
+            LibraryArtefact::Crypto => "crypto",
+            LibraryArtefact::Ssl => "ssl",
+        }
+    }
+
+    fn compiled_library_name(&self) -> CompiledLibraryName {
+        match self.artefact {
+            LibraryArtefact::Crypto => CompiledLibraryName::Matching("crypto".to_string()),
+            LibraryArtefact::Ssl => CompiledLibraryName::Matching("ssl".to_string()),
+        }
     }
 
     fn dependencies(&self) -> Option<&LibraryDependencies> {
@@ -135,8 +164,19 @@ impl Library for OpenSSLLibrary {
         Ok(())
     }
 
-    fn compiled_library_directories(&self, _options: &LibraryCompilationContext) -> Vec<PathBuf> {
-        unimplemented!()
+    fn compiled_library_directories(&self, context: &LibraryCompilationContext) -> Vec<PathBuf> {
+        if context.is_unix() {
+            let lib = self.native_library_prefix(context).join("lib");
+            return vec![lib];
+        }
+        if context.is_windows() {
+            let lib = self
+                .native_library_prefix(context)
+                .join("src")
+                .join(context.profile());
+            return vec![lib];
+        }
+        vec![]
     }
 
     fn ensure_requirements(&self, options: &LibraryCompilationContext) {

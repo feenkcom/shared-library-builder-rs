@@ -16,6 +16,14 @@ use crate::library::CompiledLibraryName;
 pub use cmake_library::CMakeLibrary;
 pub use rust_library::RustLibrary;
 
+pub fn crypto() -> OpenSSLLibrary {
+    OpenSSLLibrary::new().be_crypto()
+}
+
+pub fn ssl() -> OpenSSLLibrary {
+    OpenSSLLibrary::new().be_ssl()
+}
+
 pub fn git() -> CMakeLibrary {
     let openssl = OpenSSLLibrary::new();
 

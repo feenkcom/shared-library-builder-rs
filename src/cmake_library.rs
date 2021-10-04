@@ -111,8 +111,8 @@ impl Library for CMakeLibrary {
         &self.name
     }
 
-    fn compiled_library_name(&self) -> &CompiledLibraryName {
-        &self.compiled_name
+    fn compiled_library_name(&self) -> CompiledLibraryName {
+        self.compiled_name.clone()
     }
 
     fn ensure_sources(&self, options: &LibraryCompilationContext) -> Result<(), Box<dyn Error>> {

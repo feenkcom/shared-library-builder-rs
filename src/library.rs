@@ -7,8 +7,8 @@ use user_error::UserFacingError;
 pub trait Library: Debug + Send + Sync {
     fn location(&self) -> &LibraryLocation;
     fn name(&self) -> &str;
-    fn compiled_library_name(&self) -> &CompiledLibraryName {
-        &CompiledLibraryName::Default
+    fn compiled_library_name(&self) -> CompiledLibraryName {
+        CompiledLibraryName::Default
     }
 
     fn source_directory(&self, context: &LibraryCompilationContext) -> PathBuf {
