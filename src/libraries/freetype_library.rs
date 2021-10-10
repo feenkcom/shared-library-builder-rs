@@ -1,6 +1,6 @@
 use crate::{
-    BZip2Library, CMakeLibrary, CompiledLibraryName, Library, LibraryCompilationContext,
-    LibraryDependencies, LibraryGitLocation, LibraryLocation, LibraryOptions, PngLibrary,
+    BZip2Library, CMakeLibrary, CompiledLibraryName, GitLocation, Library,
+    LibraryCompilationContext, LibraryDependencies, LibraryLocation, LibraryOptions, PngLibrary,
     ZLibLibrary,
 };
 use std::error::Error;
@@ -18,9 +18,7 @@ impl FreetypeLibrary {
         Self(
             CMakeLibrary::new(
                 "freetype",
-                LibraryLocation::Git(
-                    LibraryGitLocation::github("freetype", "freetype").tag(version),
-                ),
+                LibraryLocation::Git(GitLocation::github("freetype", "freetype").tag(version)),
             )
             .depends(PngLibrary::default().into())
             .depends(ZLibLibrary::default().into())

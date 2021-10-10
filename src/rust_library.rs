@@ -12,6 +12,7 @@ pub struct RustLibrary {
     features: Vec<String>,
     requires: Vec<String>,
     options: LibraryOptions,
+    package: Option<String>,
 }
 
 impl RustLibrary {
@@ -22,6 +23,7 @@ impl RustLibrary {
             features: vec![],
             requires: vec![],
             options: Default::default(),
+            package: None,
         }
     }
 
@@ -43,8 +45,14 @@ impl RustLibrary {
         library
     }
 
-    fn crate_source_directory(&self, options: &LibraryCompilationContext) -> PathBuf {
-        options.sources_root().join(&self.name)
+    pub fn package(self, package: impl Into<String>) -> Self {
+        let mut library = self;
+        library.package = Some(package.into());
+        library
+    }
+
+    fn crate_source_directory(&self, context: &LibraryCompilationContext) -> PathBuf {
+        self.source_directory(context)
     }
 }
 
@@ -71,8 +79,14 @@ impl Library for RustLibrary {
 
     fn force_compile(&self, options: &LibraryCompilationContext) -> Result<(), Box<dyn Error>> {
         let mut command = Command::new("cargo");
+        command.arg("build");
+
+        if let Some(package) = &self.package {
+            command.arg("--package").arg(package);
+        }
+
         command
-            .arg("build")
+            .arg("--lib")
             .arg("--target")
             .arg(options.target().to_string())
             .arg("--target-dir")

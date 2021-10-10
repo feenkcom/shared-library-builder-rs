@@ -1,6 +1,6 @@
 use crate::library::CompiledLibraryName;
 use crate::{
-    Library, LibraryCompilationContext, LibraryDependencies, LibraryGitLocation, LibraryLocation,
+    GitLocation, Library, LibraryCompilationContext, LibraryDependencies, LibraryLocation,
     LibraryOptions, LibraryTarget,
 };
 use std::error::Error;
@@ -31,7 +31,7 @@ impl OpenSSLLibrary {
     pub fn new() -> Self {
         Self {
             location: LibraryLocation::Git(
-                LibraryGitLocation::github("syrel", "openssl")
+                GitLocation::github("syrel", "openssl")
                     .branch("OpenSSL_1_1_1-stable-Windows-pkgconfig"),
             ),
             options: Default::default(),

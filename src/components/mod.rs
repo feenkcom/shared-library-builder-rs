@@ -7,7 +7,7 @@ mod target;
 
 pub use context::LibraryCompilationContext;
 pub use dependencies::LibraryDependencies;
-pub use location::{LibraryLocation, PathLocation, TarArchive, TarUrlLocation};
+pub use location::LibraryLocation;
 pub use locations::*;
 pub use options::LibraryOptions;
 pub use target::LibraryTarget;

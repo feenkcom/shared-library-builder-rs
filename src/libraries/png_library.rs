@@ -1,6 +1,6 @@
 use crate::{
-    CMakeLibrary, CompiledLibraryName, Library, LibraryCompilationContext, LibraryDependencies,
-    LibraryGitLocation, LibraryLocation, LibraryOptions, ZLibLibrary,
+    CMakeLibrary, CompiledLibraryName, GitLocation, Library, LibraryCompilationContext,
+    LibraryDependencies, LibraryLocation, LibraryOptions, ZLibLibrary,
 };
 use std::error::Error;
 use std::path::PathBuf;
@@ -17,7 +17,7 @@ impl PngLibrary {
         Self(
             CMakeLibrary::new(
                 "png",
-                LibraryLocation::Git(LibraryGitLocation::github("glennrp", "libpng").tag(version)),
+                LibraryLocation::Git(GitLocation::github("glennrp", "libpng").tag(version)),
             )
             .depends(ZLibLibrary::default().into())
             .compiled_name(CompiledLibraryName::Matching("png".to_string()))

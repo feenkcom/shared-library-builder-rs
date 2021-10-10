@@ -1,6 +1,6 @@
 use crate::{
-    CMakeLibrary, CompiledLibraryName, Library, LibraryCompilationContext, LibraryDependencies,
-    LibraryGitLocation, LibraryLocation, LibraryOptions,
+    CMakeLibrary, CompiledLibraryName, GitLocation, Library, LibraryCompilationContext,
+    LibraryDependencies, LibraryLocation, LibraryOptions,
 };
 use std::error::Error;
 use std::path::PathBuf;
@@ -18,7 +18,7 @@ impl BZip2Library {
             CMakeLibrary::new(
                 "bzip2",
                 LibraryLocation::Git(
-                    LibraryGitLocation::gitlab("federicomenaquintero", "bzip2").commit(commit),
+                    GitLocation::gitlab("federicomenaquintero", "bzip2").commit(commit),
                 ),
             )
             .compiled_name(CompiledLibraryName::Matching("bzip2".to_string()))

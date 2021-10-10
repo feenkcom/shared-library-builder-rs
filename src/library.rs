@@ -12,7 +12,8 @@ pub trait Library: Debug + Send + Sync {
     }
 
     fn source_directory(&self, context: &LibraryCompilationContext) -> PathBuf {
-        context.sources_root().join(self.name())
+        self.location()
+            .sources_directory(&PathBuf::from(self.name()), context)
     }
 
     fn ensure_sources(&self, context: &LibraryCompilationContext) -> Result<(), Box<dyn Error>> {
@@ -20,12 +21,13 @@ pub trait Library: Debug + Send + Sync {
         location.ensure_sources(&PathBuf::from(self.name()), context)
     }
 
-    fn retrieve_prebuilt_library(
-        &self,
-        context: &LibraryCompilationContext,
-    ) -> Option<PathBuf> {
+    fn retrieve_prebuilt_library(&self, context: &LibraryCompilationContext) -> Option<PathBuf> {
         let location = self.location();
-        location.retrieve_prebuilt_library(self.clone_library(), &PathBuf::from(self.name()), context)
+        location.retrieve_prebuilt_library(
+            self.clone_library(),
+            &PathBuf::from(self.name()),
+            context,
+        )
     }
 
     fn dependencies(&self) -> Option<&LibraryDependencies>;

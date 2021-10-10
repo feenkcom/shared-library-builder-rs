@@ -1,6 +1,6 @@
 use crate::{
-    CMakeLibrary, CompiledLibraryName, Library, LibraryCompilationContext, LibraryDependencies,
-    LibraryGitLocation, LibraryLocation, LibraryOptions,
+    CMakeLibrary, CompiledLibraryName, GitLocation, Library, LibraryCompilationContext,
+    LibraryDependencies, LibraryLocation, LibraryOptions,
 };
 use file_matcher::FileNamed;
 use std::error::Error;
@@ -18,7 +18,7 @@ impl ZLibLibrary {
         Self(
             CMakeLibrary::new(
                 "zlib",
-                LibraryLocation::Git(LibraryGitLocation::github("madler", "zlib").tag(version)),
+                LibraryLocation::Git(GitLocation::github("madler", "zlib").tag(version)),
             )
             .compiled_name(CompiledLibraryName::Matching("zlib".to_string()))
             .define_static("BUILD_SHARED_LIBS", "OFF")

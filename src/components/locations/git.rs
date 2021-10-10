@@ -105,15 +105,23 @@ impl GitLocation {
         }
     }
 
+    pub(crate) fn sources_directory(
+        &self,
+        default_source_directory: &Path,
+        context: &LibraryCompilationContext,
+    ) -> PathBuf {
+        match self.directory {
+            None => context.sources_root().join(default_source_directory),
+            Some(ref custom_directory) => context.sources_root().join(custom_directory),
+        }
+    }
+
     pub(crate) fn ensure_sources(
         &self,
         default_source_directory: &Path,
         context: &LibraryCompilationContext,
     ) -> Result<(), Box<dyn Error>> {
-        let source_directory = match self.directory {
-            None => context.sources_root().join(default_source_directory),
-            Some(ref custom_directory) => context.sources_root().join(custom_directory),
-        };
+        let source_directory = self.sources_directory(default_source_directory, context);
 
         if !source_directory.exists() {
             let result = Command::new("git")
