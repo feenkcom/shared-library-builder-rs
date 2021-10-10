@@ -77,7 +77,7 @@ impl Library for RustLibrary {
         &mut self.options
     }
 
-    fn force_compile(&self, options: &LibraryCompilationContext) -> Result<(), Box<dyn Error>> {
+    fn force_compile(&self, context: &LibraryCompilationContext) -> Result<(), Box<dyn Error>> {
         let mut command = Command::new("cargo");
         command.arg("build");
 
@@ -88,14 +88,21 @@ impl Library for RustLibrary {
         command
             .arg("--lib")
             .arg("--target")
-            .arg(options.target().to_string())
+            .arg(context.target().to_string())
             .arg("--target-dir")
-            .arg(options.build_root())
+            .arg(context.build_root())
             .arg("--manifest-path")
-            .arg(self.crate_source_directory(options).join("Cargo.toml"));
+            .arg(self.crate_source_directory(context).join("Cargo.toml"));
 
-        if options.is_release() {
+        if context.is_release() {
             command.arg("--release");
+        }
+
+        if context.is_windows() {
+            command.env("RUSTFLAGS", "-C target-feature=+crt-static");
+        }
+        if context.is_mac() {
+            command.env("RUSTFLAGS", "-C link-arg=-mmacosx-version-min=10.10");
         }
 
         let status = command.status().unwrap();

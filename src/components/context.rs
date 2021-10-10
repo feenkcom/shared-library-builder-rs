@@ -58,6 +58,9 @@ impl LibraryCompilationContext {
     pub fn is_unix(&self) -> bool {
         self.target().is_unix()
     }
+    pub fn is_mac(&self) -> bool {
+        self.target().is_mac()
+    }
     pub fn is_windows(&self) -> bool {
         self.target().is_windows()
     }

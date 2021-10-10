@@ -47,6 +47,15 @@ impl LibraryTarget {
         }
     }
 
+    pub fn is_mac(&self) -> bool {
+        match self {
+            Self::X8664appleDarwin => true,
+            Self::AArch64appleDarwin => true,
+            Self::X8664pcWindowsMsvc => false,
+            Self::X8664UnknownlinuxGNU => false,
+        }
+    }
+
     pub fn is_windows(&self) -> bool {
         match self {
             Self::X8664appleDarwin => false,
