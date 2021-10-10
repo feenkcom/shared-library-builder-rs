@@ -6,6 +6,9 @@ use user_error::UserFacingError;
 
 pub trait Library: Debug + Send + Sync {
     fn location(&self) -> &LibraryLocation;
+    fn release_location(&self) -> &LibraryLocation {
+        self.location()
+    }
     fn name(&self) -> &str;
     fn compiled_library_name(&self) -> CompiledLibraryName {
         CompiledLibraryName::Default
@@ -22,7 +25,7 @@ pub trait Library: Debug + Send + Sync {
     }
 
     fn retrieve_prebuilt_library(&self, context: &LibraryCompilationContext) -> Option<PathBuf> {
-        let location = self.location();
+        let location = self.release_location();
         location.retrieve_prebuilt_library(
             self.clone_library(),
             &PathBuf::from(self.name()),

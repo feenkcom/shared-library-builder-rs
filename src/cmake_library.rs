@@ -11,7 +11,8 @@ use std::path::{Path, PathBuf};
 pub struct CMakeLibrary {
     name: String,
     compiled_name: CompiledLibraryName,
-    location: LibraryLocation,
+    source_location: LibraryLocation,
+    release_location: Option<LibraryLocation>,
     defines: CMakeLibraryDefines,
     dependencies: LibraryDependencies,
     options: LibraryOptions,
@@ -23,7 +24,8 @@ impl CMakeLibrary {
         Self {
             name: name.to_owned(),
             compiled_name: CompiledLibraryName::Default,
-            location,
+            source_location: location,
+            release_location: None,
             defines: Default::default(),
             dependencies: LibraryDependencies::new(),
             options: Default::default(),
@@ -35,7 +37,8 @@ impl CMakeLibrary {
         Self {
             name: self.name,
             compiled_name: self.compiled_name,
-            location: self.location,
+            source_location: self.source_location,
+            release_location: None,
             defines,
             dependencies: self.dependencies,
             options: self.options,
@@ -66,7 +69,8 @@ impl CMakeLibrary {
         Self {
             name: self.name,
             compiled_name: self.compiled_name,
-            location: self.location,
+            source_location: self.source_location,
+            release_location: self.release_location,
             defines: self.defines,
             dependencies: self.dependencies.push(library),
             options: self.options,
@@ -78,7 +82,8 @@ impl CMakeLibrary {
         Self {
             name: self.name,
             compiled_name,
-            location: self.location,
+            source_location: self.source_location,
+            release_location: self.release_location,
             defines: self.defines,
             dependencies: self.dependencies,
             options: self.options,
@@ -93,18 +98,38 @@ impl CMakeLibrary {
         Self {
             name: self.name,
             compiled_name: self.compiled_name,
-            location: self.location,
+            source_location: self.source_location,
+            release_location: self.release_location,
             defines: self.defines,
             dependencies: self.dependencies,
             options: self.options,
             files_to_delete: entries,
         }
     }
+
+    pub fn with_release_location(self, release_location: LibraryLocation) -> Self {
+        Self {
+            name: self.name,
+            compiled_name: self.compiled_name,
+            source_location: self.source_location,
+            release_location: Some(release_location),
+            defines: self.defines,
+            dependencies: self.dependencies,
+            options: self.options,
+            files_to_delete: self.files_to_delete,
+        }
+    }
 }
 
 impl Library for CMakeLibrary {
     fn location(&self) -> &LibraryLocation {
-        &self.location
+        &self.source_location
+    }
+
+    fn release_location(&self) -> &LibraryLocation {
+        self.release_location
+            .as_ref()
+            .unwrap_or_else(|| &self.source_location)
     }
 
     fn name(&self) -> &str {
