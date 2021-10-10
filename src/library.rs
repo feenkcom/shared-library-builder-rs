@@ -77,7 +77,26 @@ pub trait Library: Debug + Send + Sync {
 
         println!("About to build {} from\n{:?}", self.name(), self);
         self.force_compile(context)?;
-        Ok(self.compiled_library(context))
+
+        let compiled_library = self.compiled_library(context);
+        if self.is_shared() {
+            let mut exported_path = context
+                .build_root()
+                .join(context.target().to_string())
+                .join(context.profile());
+
+            if !exported_path.exists() {
+                std::fs::create_dir_all(&exported_path)?;
+            }
+
+            exported_path = exported_path.join(self.compiled_library_name().file_name(self.name()));
+
+            std::fs::copy(compiled_library, &exported_path)?;
+
+            Ok(exported_path)
+        } else {
+            Ok(compiled_library)
+        }
     }
 
     fn force_compile(&self, context: &LibraryCompilationContext) -> Result<(), Box<dyn Error>>;

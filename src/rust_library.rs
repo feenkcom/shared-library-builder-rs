@@ -105,11 +105,11 @@ impl Library for RustLibrary {
         Ok(())
     }
 
-    fn compiled_library_directories(&self, options: &LibraryCompilationContext) -> Vec<PathBuf> {
-        let path = options
+    fn compiled_library_directories(&self, context: &LibraryCompilationContext) -> Vec<PathBuf> {
+        let path = context
             .build_root()
-            .join(options.target().to_string())
-            .join(options.profile());
+            .join(context.target().to_string())
+            .join(context.profile());
         vec![path]
     }
 
