@@ -213,7 +213,7 @@ impl GitLocation {
                         .unwrap();
 
                     let url = format!(
-                        "https://github.com/{}/{}/releases/download/{}/libGlutin-{}.dylib",
+                        "https://github.com/{}/{}/releases/download/{}/{}",
                         owner,
                         repo,
                         tag,
@@ -228,9 +228,18 @@ impl GitLocation {
 
                     let mut result = match downloader.download(&[to_download]) {
                         Ok(result) => result,
-                        Err(_) => return None,
+                        Err(error) => {
+                            eprintln!("Failed to download {} due to {:?}", &url, error);
+                            return None;
+                        }
                     };
-                    let download_result = result.remove(0).unwrap();
+                    let download_result = match result.remove(0) {
+                        Ok(result) => result,
+                        Err(error) => {
+                            eprintln!("Failed to download {} due to {:?}", &url, error);
+                            return None;
+                        }
+                    };
 
                     let downloaded_file_name = download_result.file_name;
                     let proper_file_name = downloaded_file_name
