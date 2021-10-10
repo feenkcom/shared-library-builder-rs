@@ -107,12 +107,12 @@ impl CMakeLibrary {
         }
     }
 
-    pub fn with_release_location(self, release_location: LibraryLocation) -> Self {
+    pub fn with_release_location(self, release_location: Option<LibraryLocation>) -> Self {
         Self {
             name: self.name,
             compiled_name: self.compiled_name,
             source_location: self.source_location,
-            release_location: Some(release_location),
+            release_location,
             defines: self.defines,
             dependencies: self.dependencies,
             options: self.options,
