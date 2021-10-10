@@ -1,18 +1,17 @@
 extern crate fs_extra;
 extern crate to_absolute;
-
+#[cfg(feature = "cmake-library")]
 mod cmake_library;
 mod components;
 //mod libraries;
 mod library;
 mod rust_library;
 
-pub use library::Library;
-
 pub use components::*;
 //pub use libraries::*;
 
-use crate::library::CompiledLibraryName;
+pub use crate::library::{CompiledLibraryName, Library};
+#[cfg(feature = "cmake-library")]
 pub use cmake_library::CMakeLibrary;
 pub use rust_library::RustLibrary;
 //
