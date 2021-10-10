@@ -19,8 +19,7 @@ impl FreetypeLibrary {
             CMakeLibrary::new(
                 "freetype",
                 LibraryLocation::Git(
-                    LibraryGitLocation::new("https://github.com/freetype/freetype.git")
-                        .tag(version),
+                    LibraryGitLocation::github("freetype", "freetype").tag(version),
                 ),
             )
             .depends(PngLibrary::default().into())

@@ -18,9 +18,7 @@ impl ZLibLibrary {
         Self(
             CMakeLibrary::new(
                 "zlib",
-                LibraryLocation::Git(
-                    LibraryGitLocation::new("https://github.com/madler/zlib.git").tag(version),
-                ),
+                LibraryLocation::Git(LibraryGitLocation::github("madler", "zlib").tag(version)),
             )
             .compiled_name(CompiledLibraryName::Matching("zlib".to_string()))
             .define_static("BUILD_SHARED_LIBS", "OFF")

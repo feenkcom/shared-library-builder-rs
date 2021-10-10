@@ -1,16 +1,14 @@
-use crate::LibraryCompilationContext;
+use crate::{Library, LibraryCompilationContext, LibraryGitLocation};
 use downloader::{Download, Downloader};
 use std::error::Error;
 use std::fs::File;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use tar::Archive;
-use url::Url;
 use user_error::UserFacingError;
 
 #[derive(Debug, Clone)]
 pub enum LibraryLocation {
-    Git(GitLocation),
+    Git(LibraryGitLocation),
     Path(PathLocation),
     Tar(TarUrlLocation),
     Zip(ZipUrlLocation),
@@ -18,6 +16,30 @@ pub enum LibraryLocation {
 }
 
 impl LibraryLocation {
+    pub fn github(owner: impl Into<String>, repo: impl Into<String>) -> Self {
+        Self::Git(LibraryGitLocation::github(owner, repo))
+    }
+
+    /// Try to retrieve a prebuilt library for the current target and return a path to the file
+    pub fn retrieve_prebuilt_library(
+        &self,
+        library: Box<dyn Library>,
+        default_source_directory: &Path,
+        context: &LibraryCompilationContext,
+    ) -> Option<PathBuf> {
+        // Static libraries must be compiled from sources
+        if library.is_static() {
+            return None;
+        }
+
+        match self {
+            LibraryLocation::Git(git_location) => {
+                git_location.retrieve_prebuilt_library(library, default_source_directory, context)
+            }
+            _ => None,
+        }
+    }
+
     pub fn ensure_sources(
         &self,
         default_source_directory: &Path,
@@ -44,147 +66,6 @@ impl LibraryLocation {
                 zip_location.ensure_sources(default_source_directory, context)
             }
         }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct GitLocation {
-    repository: Url,
-    version: GitVersion,
-    directory: Option<PathBuf>,
-}
-
-#[derive(Debug, Clone)]
-pub enum GitVersion {
-    Tag(String),
-    Commit(String),
-    Branch(String),
-    Latest,
-}
-
-impl GitLocation {
-    pub fn new(repository: &str) -> Self {
-        Self {
-            repository: Url::parse(repository).unwrap(),
-            version: GitVersion::Latest,
-            directory: None,
-        }
-    }
-
-    pub fn commit(self, commit: impl Into<String>) -> Self {
-        Self {
-            repository: self.repository,
-            version: GitVersion::Commit(commit.into()),
-            directory: self.directory,
-        }
-    }
-
-    pub fn branch(self, branch: impl Into<String>) -> Self {
-        Self {
-            repository: self.repository,
-            version: GitVersion::Branch(branch.into()),
-            directory: self.directory,
-        }
-    }
-
-    pub fn tag(self, tag: impl Into<String>) -> Self {
-        Self {
-            repository: self.repository,
-            version: GitVersion::Tag(tag.into()),
-            directory: self.directory,
-        }
-    }
-
-    pub fn directory(self, directory: impl Into<PathBuf>) -> Self {
-        Self {
-            repository: self.repository,
-            version: self.version,
-            directory: Some(directory.into()),
-        }
-    }
-
-    fn ensure_sources(
-        &self,
-        default_source_directory: &Path,
-        context: &LibraryCompilationContext,
-    ) -> Result<(), Box<dyn Error>> {
-        let source_directory = match self.directory {
-            None => context.sources_root().join(default_source_directory),
-            Some(ref custom_directory) => context.sources_root().join(custom_directory),
-        };
-
-        if !source_directory.exists() {
-            let result = Command::new("git")
-                .arg("clone")
-                .arg(self.repository.to_string())
-                .arg(&source_directory)
-                .status()
-                .unwrap();
-
-            if !result.success() {
-                return Err(Box::new(
-                    UserFacingError::new("Failed to build project")
-                        .reason(format!("Could not clone {}", &self.repository))
-                        .help(
-                            "Make sure the configuration is correct and the git repository exists",
-                        ),
-                ));
-            }
-        }
-
-        Command::new("git")
-            .current_dir(&source_directory)
-            .arg("clean")
-            .arg("-fdx")
-            .status()
-            .unwrap();
-
-        Command::new("git")
-            .current_dir(&source_directory)
-            .arg("fetch")
-            .arg("--all")
-            .arg("--tags")
-            .status()
-            .unwrap();
-
-        let status = match &self.version {
-            GitVersion::Tag(tag) => Command::new("git")
-                .current_dir(&source_directory)
-                .arg("checkout")
-                .arg(format!("tags/{}", tag))
-                .status()
-                .unwrap(),
-            GitVersion::Commit(commit) => Command::new("git")
-                .current_dir(&source_directory)
-                .arg("checkout")
-                .arg(commit)
-                .status()
-                .unwrap(),
-            GitVersion::Branch(branch) => Command::new("git")
-                .current_dir(&source_directory)
-                .arg("checkout")
-                .arg(branch)
-                .status()
-                .unwrap(),
-            GitVersion::Latest => Command::new("git")
-                .current_dir(&source_directory)
-                .arg("pull")
-                .status()
-                .unwrap(),
-        };
-
-        if !status.success() {
-            return Err(Box::new(
-                UserFacingError::new("Failed to build project")
-                    .reason(format!(
-                        "Could not checkout {:?} of {:?}",
-                        &self.version, &self.repository
-                    ))
-                    .help("Make sure the configuration is correct and the git repository exists"),
-            ));
-        }
-
-        Ok(())
     }
 }
 

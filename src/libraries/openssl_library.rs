@@ -31,7 +31,7 @@ impl OpenSSLLibrary {
     pub fn new() -> Self {
         Self {
             location: LibraryLocation::Git(
-                LibraryGitLocation::new("https://github.com/syrel/openssl.git")
+                LibraryGitLocation::github("syrel", "openssl")
                     .branch("OpenSSL_1_1_1-stable-Windows-pkgconfig"),
             ),
             options: Default::default(),
@@ -170,9 +170,7 @@ impl Library for OpenSSLLibrary {
             return vec![lib];
         }
         if context.is_windows() {
-            let lib = self
-                .native_library_prefix(context)
-                .join("bin");
+            let lib = self.native_library_prefix(context).join("bin");
             return vec![lib];
         }
         vec![]

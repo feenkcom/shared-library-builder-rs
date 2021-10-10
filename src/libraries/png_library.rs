@@ -17,9 +17,7 @@ impl PngLibrary {
         Self(
             CMakeLibrary::new(
                 "png",
-                LibraryLocation::Git(
-                    LibraryGitLocation::new("https://github.com/glennrp/libpng.git").tag(version),
-                ),
+                LibraryLocation::Git(LibraryGitLocation::github("glennrp", "libpng").tag(version)),
             )
             .depends(ZLibLibrary::default().into())
             .compiled_name(CompiledLibraryName::Matching("png".to_string()))

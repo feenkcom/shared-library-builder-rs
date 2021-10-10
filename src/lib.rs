@@ -29,9 +29,7 @@ pub fn git() -> CMakeLibrary {
 
     let libssh2 = CMakeLibrary::new(
         "ssh2",
-        LibraryLocation::Git(
-            LibraryGitLocation::new("https://github.com/libssh2/libssh2.git").tag("libssh2-1.9.0"),
-        ),
+        LibraryLocation::Git(LibraryGitLocation::github("libssh2", "libssh2").tag("libssh2-1.9.0")),
     )
     .define_common("CRYPTO_BACKEND", "OpenSSL")
     .depends(Box::new(openssl));
@@ -39,8 +37,7 @@ pub fn git() -> CMakeLibrary {
     CMakeLibrary::new(
         "git2",
         LibraryLocation::Git(
-            LibraryGitLocation::new("https://github.com/syrel/libgit2.git")
-                .branch("v1.1.1-windows-openssl"),
+            LibraryGitLocation::github("syrel", "libgit2").branch("v1.1.1-windows-openssl"),
         ),
     )
     .compiled_name(CompiledLibraryName::Matching("git2".to_string()))
@@ -53,9 +50,7 @@ pub fn git() -> CMakeLibrary {
 pub fn sdl2() -> CMakeLibrary {
     CMakeLibrary::new(
         "SDL2",
-        LibraryLocation::Git(
-            LibraryGitLocation::new("https://github.com/libsdl-org/SDL.git").tag("release-2.0.14"),
-        ),
+        LibraryLocation::Git(LibraryGitLocation::github("libsdl-org", "SDL").tag("release-2.0.14")),
     )
     .compiled_name(CompiledLibraryName::Matching("SDL2".to_string()))
 }
@@ -63,27 +58,21 @@ pub fn sdl2() -> CMakeLibrary {
 pub fn glutin() -> RustLibrary {
     RustLibrary::new(
         "Glutin",
-        LibraryLocation::Git(LibraryGitLocation::new(
-            "https://github.com/feenkcom/libglutin.git",
-        )),
+        LibraryLocation::Git(LibraryGitLocation::github("feenkcom", "libglutin")),
     )
 }
 
 pub fn boxer() -> RustLibrary {
     RustLibrary::new(
         "Boxer",
-        LibraryLocation::Git(LibraryGitLocation::new(
-            "https://github.com/feenkcom/gtoolkit-boxer.git",
-        )),
+        LibraryLocation::Git(LibraryGitLocation::github("feenkcom", "gtoolkit-boxer")),
     )
 }
 
 pub fn skia() -> RustLibrary {
     RustLibrary::new(
         "Skia",
-        LibraryLocation::Git(LibraryGitLocation::new(
-            "https://github.com/feenkcom/libskia.git",
-        )),
+        LibraryLocation::Git(LibraryGitLocation::github("feenkcom", "libskia")),
     )
     .requires("python")
 }
@@ -91,26 +80,20 @@ pub fn skia() -> RustLibrary {
 pub fn gleam() -> RustLibrary {
     RustLibrary::new(
         "Gleam",
-        LibraryLocation::Git(LibraryGitLocation::new(
-            "https://github.com/feenkcom/libgleam.git",
-        )),
+        LibraryLocation::Git(LibraryGitLocation::github("feenkcom", "libgleam")),
     )
 }
 
 pub fn winit() -> RustLibrary {
     RustLibrary::new(
         "Winit",
-        LibraryLocation::Git(LibraryGitLocation::new(
-            "https://github.com/feenkcom/libwinit.git",
-        )),
+        LibraryLocation::Git(LibraryGitLocation::github("feenkcom", "libwinit")),
     )
 }
 
 pub fn clipboard() -> RustLibrary {
     RustLibrary::new(
         "Clipboard",
-        LibraryLocation::Git(LibraryGitLocation::new(
-            "https://github.com/feenkcom/libclipboard.git",
-        )),
+        LibraryLocation::Git(LibraryGitLocation::github("feenkcom", "libclipboard")),
     )
 }

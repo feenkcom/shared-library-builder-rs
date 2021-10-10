@@ -18,8 +18,7 @@ impl BZip2Library {
             CMakeLibrary::new(
                 "bzip2",
                 LibraryLocation::Git(
-                    LibraryGitLocation::new("https://gitlab.com/federicomenaquintero/bzip2")
-                        .commit(commit),
+                    LibraryGitLocation::gitlab("federicomenaquintero", "bzip2").commit(commit),
                 ),
             )
             .compiled_name(CompiledLibraryName::Matching("bzip2".to_string()))

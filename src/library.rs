@@ -20,6 +20,14 @@ pub trait Library: Debug + Send + Sync {
         location.ensure_sources(&PathBuf::from(self.name()), context)
     }
 
+    fn retrieve_prebuilt_library(
+        &self,
+        context: &LibraryCompilationContext,
+    ) -> Option<PathBuf> {
+        let location = self.location();
+        location.retrieve_prebuilt_library(self.clone_library(), &PathBuf::from(self.name()), context)
+    }
+
     fn dependencies(&self) -> Option<&LibraryDependencies>;
     fn options(&self) -> &LibraryOptions;
     fn options_mut(&mut self) -> &mut LibraryOptions;
@@ -44,7 +52,7 @@ pub trait Library: Debug + Send + Sync {
         self.compiled_library(context).exists()
     }
 
-    fn compile(&self, context: &LibraryCompilationContext) -> Result<(), Box<dyn Error>> {
+    fn compile(&self, context: &LibraryCompilationContext) -> Result<PathBuf, Box<dyn Error>> {
         if let Some(dependencies) = self.dependencies() {
             dependencies.ensure_requirements(context)?;
         }
@@ -52,13 +60,19 @@ pub trait Library: Debug + Send + Sync {
         if let Some(dependencies) = self.dependencies() {
             dependencies.ensure_sources(context)?;
         }
+
+        if let Some(prebuilt_library) = self.retrieve_prebuilt_library(context) {
+            return Ok(prebuilt_library);
+        }
+
         self.ensure_sources(context)?;
         if let Some(dependencies) = self.dependencies() {
             dependencies.force_compile(context)?;
         }
+
         println!("About to build {} from\n{:?}", self.name(), self);
         self.force_compile(context)?;
-        Ok(())
+        Ok(self.compiled_library(context))
     }
 
     fn force_compile(&self, context: &LibraryCompilationContext) -> Result<(), Box<dyn Error>>;
