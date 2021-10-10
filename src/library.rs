@@ -91,7 +91,10 @@ pub trait Library: Debug + Send + Sync {
 
             exported_path = exported_path.join(self.compiled_library_name().file_name(self.name()));
 
-            std::fs::copy(compiled_library, &exported_path)?;
+            // prevent from overwriting
+            if exported_path != compiled_library {
+                std::fs::copy(compiled_library, &exported_path)?;
+            }
 
             Ok(exported_path)
         } else {
