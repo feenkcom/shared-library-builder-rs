@@ -80,23 +80,7 @@ pub trait Library: Debug + Send + Sync {
 
         let compiled_library = self.compiled_library(context);
         if self.is_shared() {
-            let mut exported_path = context
-                .build_root()
-                .join(context.target().to_string())
-                .join(context.profile());
-
-            if !exported_path.exists() {
-                std::fs::create_dir_all(&exported_path)?;
-            }
-
-            exported_path = exported_path.join(self.compiled_library_name().file_name(self.name()));
-
-            // prevent from overwriting
-            if exported_path != compiled_library {
-                std::fs::copy(compiled_library, &exported_path)?;
-            }
-
-            Ok(exported_path)
+            self.export_compiled_library(context)
         } else {
             Ok(compiled_library)
         }
@@ -105,6 +89,26 @@ pub trait Library: Debug + Send + Sync {
     fn force_compile(&self, context: &LibraryCompilationContext) -> Result<(), Box<dyn Error>>;
 
     fn compiled_library_directories(&self, context: &LibraryCompilationContext) -> Vec<PathBuf>;
+
+    fn export_compiled_library(&self, context: &LibraryCompilationContext) -> Result<PathBuf, Box<dyn Error>> {
+        let mut exported_path = context
+            .build_root()
+            .join(context.target().to_string())
+            .join(context.profile());
+
+        if !exported_path.exists() {
+            std::fs::create_dir_all(&exported_path)?;
+        }
+
+        exported_path = exported_path.join(self.compiled_library_name().file_name(self.name()));
+
+        // prevent from overwriting
+        if exported_path != compiled_library {
+            std::fs::copy(compiled_library, &exported_path)?;
+        }
+
+        Ok(exported_path)
+    }
 
     fn compiled_library(&self, context: &LibraryCompilationContext) -> PathBuf {
         let library_name = self.name();
