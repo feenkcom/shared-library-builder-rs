@@ -48,9 +48,7 @@ impl LibraryDependencies {
     pub fn linker_libraries(&self, options: &LibraryCompilationContext) -> Vec<PathBuf> {
         let mut paths = vec![];
         for dependency in &self.dependencies {
-            for each in dependency.native_library_linker_libraries(options) {
-                paths.push(each);
-            }
+            paths.extend(dependency.linker_libraries(options));
         }
         paths
     }

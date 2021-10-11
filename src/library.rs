@@ -162,6 +162,14 @@ pub trait Library: Debug + Send + Sync {
             .map_or(false, |dependencies| !dependencies.is_empty())
     }
 
+    fn linker_libraries(&self, context: &LibraryCompilationContext) -> Vec<PathBuf> {
+        let mut dirs = self.native_library_linker_libraries(context);
+        if let Some(dependencies) = self.dependencies() {
+            dirs.extend(dependencies.linker_libraries(context));
+        }
+        dirs
+    }
+
     /// Return all pkg-config directories of all dependencies
     fn all_pkg_config_directories(&self, context: &LibraryCompilationContext) -> Vec<PathBuf> {
         let mut dirs = vec![];
