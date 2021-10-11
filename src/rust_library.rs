@@ -115,11 +115,18 @@ impl Library for RustLibrary {
     }
 
     fn compiled_library_directories(&self, context: &LibraryCompilationContext) -> Vec<PathBuf> {
-        let path = context
+        let path_without_target = context.build_root().join(context.profile());
+
+        let path_with_target = context
             .build_root()
             .join(context.target().to_string())
             .join(context.profile());
-        vec![path]
+
+        if context.target().is_current() {
+            vec![path_without_target]
+        } else {
+            vec![path_with_target]
+        }
     }
 
     fn ensure_requirements(&self, _options: &LibraryCompilationContext) {
