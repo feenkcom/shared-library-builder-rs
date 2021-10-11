@@ -78,11 +78,10 @@ pub trait Library: Debug + Send + Sync {
         println!("About to build {} from\n{:?}", self.name(), self);
         self.force_compile(context)?;
 
-        let compiled_library = self.compiled_library(context);
         if self.is_shared() {
             self.export_compiled_library(context)
         } else {
-            Ok(compiled_library)
+            Ok(self.compiled_library(context))
         }
     }
 
@@ -91,6 +90,8 @@ pub trait Library: Debug + Send + Sync {
     fn compiled_library_directories(&self, context: &LibraryCompilationContext) -> Vec<PathBuf>;
 
     fn export_compiled_library(&self, context: &LibraryCompilationContext) -> Result<PathBuf, Box<dyn Error>> {
+        let compiled_library = self.compiled_library(context);
+
         let mut exported_path = context
             .build_root()
             .join(context.target().to_string())
