@@ -85,10 +85,12 @@ impl Library for RustLibrary {
             command.arg("--package").arg(package);
         }
 
+        command.arg("--lib");
+
+        if !context.target().is_current() {
+            command.arg("--target").arg(context.target().to_string());
+        }
         command
-            .arg("--lib")
-            .arg("--target")
-            .arg(context.target().to_string())
             .arg("--target-dir")
             .arg(context.build_root())
             .arg("--manifest-path")

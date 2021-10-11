@@ -1,4 +1,4 @@
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum LibraryTarget {
     X8664appleDarwin,
     AArch64appleDarwin,
@@ -36,6 +36,10 @@ impl LibraryTarget {
             },
             _ => panic!("Unsupported OS"),
         }
+    }
+
+    pub fn is_current(&self) -> bool {
+        self.eq(&Self::for_current_platform())
     }
 
     pub fn is_unix(&self) -> bool {
