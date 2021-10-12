@@ -220,7 +220,7 @@ pub enum CompiledLibraryName {
 }
 
 impl CompiledLibraryName {
-    fn platform_library_ending(&self) -> String {
+    pub fn platform_library_ending(&self) -> String {
         #[cfg(target_os = "linux")]
         let ending = "so";
         #[cfg(target_os = "macos")]
