@@ -6,7 +6,7 @@ pipeline {
     agent none
     parameters {
         booleanParam(name: 'PUBLISH', defaultValue: false, description: 'Set to true to publish a new version to crates.io')
-        choice(name: 'PUBLISH_BUMP', choices: ['minor', 'patch', 'major'], description: 'What to bump when publishing') }
+        choice(name: 'PUBLISH_BUMP', choices: ['patch', 'minor', 'major'], description: 'What to bump when publishing') }
     options {
         buildDiscarder(logRotator(numToKeepStr: '50'))
         disableConcurrentBuilds()
@@ -108,7 +108,7 @@ pipeline {
                 }
             }
         }
-        stage ('Publish') {
+        stage ('Publish on crates.io') {
             agent {
                 label "${MACOS_M1_TARGET}"
             }
@@ -121,9 +121,24 @@ pipeline {
                 }
             }
             steps {
-                //sh "cargo publish --dry-run"
-                //sh "cargo publish"
+                sh "cargo publish --dry-run"
+                sh "cargo publish"
+            }
+        }
 
+        stage ('Release on github') {
+            agent {
+                label "${MACOS_M1_TARGET}"
+            }
+            environment {
+                TARGET = "${MACOS_M1_TARGET}"
+            }
+            when {
+                expression {
+                    (currentBuild.result == null || currentBuild.result == 'SUCCESS') && env.BRANCH_NAME.toString().equals('main')
+                }
+            }
+            steps {
                 sh "curl -o feenk-releaser -LsS https://github.com/feenkcom/releaser-rs/releases/latest/download/feenk-releaser-${TARGET}"
                 sh "chmod +x feenk-releaser"
 
