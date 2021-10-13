@@ -147,7 +147,7 @@ pipeline {
                     --owner ${REPOSITORY_OWNER} \
                     --repo ${REPOSITORY_NAME} \
                     --token GITHUB_TOKEN \
-                    --bump-${params.PUBLISH_BUMP} \
+                    --bump ${params.PUBLISH_BUMP} \
                     --auto-accept """
             }
         }
