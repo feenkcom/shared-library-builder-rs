@@ -13,7 +13,6 @@ pipeline {
     }
     environment {
         GITHUB_TOKEN = credentials('githubrelease')
-        AWSIP = 'ec2-18-197-145-81.eu-central-1.compute.amazonaws.com'
 
         REPOSITORY_OWNER = 'feenkcom'
         REPOSITORY_NAME = 'shared-library-builder'
@@ -123,8 +122,8 @@ pipeline {
                 }
             }
             steps {
-                sh "cargo publish --dry-run"
-                sh "cargo publish"
+                //sh "cargo publish --dry-run"
+                //sh "cargo publish"
 
                 sh "curl -o feenk-releaser -LsS https://github.com/feenkcom/releaser-rs/releases/latest/download/feenk-releaser-${TARGET}"
                 sh "chmod +x feenk-releaser"
