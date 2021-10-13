@@ -33,7 +33,7 @@ impl CMakeLibrary {
             dependencies: LibraryDependencies::new(),
             options: Default::default(),
             files_to_delete: vec![],
-            header_directories: vec![Path::new("include").into_path_buf()],
+            header_directories: vec![Path::new("include").to_path_buf()],
         }
     }
 
