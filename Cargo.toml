@@ -12,7 +12,7 @@ fs_extra = "1.2"
 rustc_version = "0.2"
 which = "4.1.0"
 user-error = "1.2.8"
-file-matcher = "0.6.0"
+file-matcher = "0.7"
 to_absolute = "0.1"
 cmake = { git = "https://github.com/syrel/cmake-rs", rev = "cce9d58d87bd5dd95afb9183fdbbf4cb5d4b2255", optional = true }
 pkg-config = { version = "0.3", optional = true }
@@ -23,6 +23,11 @@ flate2 = { version = "1.0", optional = true }
 xz2 = { version = "0.1", optional = true }
 zip = { version = "0.5", optional = true }
 zip-extensions = { version = "0.6", optional = true }
+serde = { version = "1.0", features = ["derive"] }
+typetag = "0.1"
+
+[dev-dependencies]
+serde_json = "1.0"
 
 [features]
 cmake-library = [ "cmake", "pkg-config" ]
@@ -32,3 +37,6 @@ tar-location = ["tar", "flate2", "xz2", "url", "downloader"]
 
 [profile.test]
 opt-level = 3
+
+[profile.dev]
+lto = true

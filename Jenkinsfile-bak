@@ -15,7 +15,6 @@ pipeline {
         GITHUB_TOKEN = credentials('githubrelease')
         AWSIP = 'ec2-18-197-145-81.eu-central-1.compute.amazonaws.com'
 
-        TOOL_NAME = 'gtoolkit-vm-builder'
         REPOSITORY_OWNER = 'feenkcom'
         REPOSITORY_NAME = 'shared-library-builder'
 
@@ -45,7 +44,7 @@ pipeline {
                         sh 'if [ -d target ]; then rm -Rf target; fi'
                         sh 'git clean -fdx'
                         sh "cargo build --release --all-features"
-                        sh "cargo test --all-features -- --nocapture --test-threads=1"
+                        //sh "cargo test --all-features -- --nocapture --test-threads=1"
                         sh "cargo clippy --manifest-path Cargo.toml -- -W clippy::style -W clippy::correctness -W clippy::complexity -W clippy::perf"
                     }
                 }
@@ -63,7 +62,7 @@ pipeline {
                         sh 'if [ -d target ]; then rm -Rf target; fi'
                         sh 'git clean -fdx'
                         sh "cargo build --release --all-features"
-                        sh "cargo test --all-features -- --nocapture --test-threads=1"
+                        //sh "cargo test --all-features -- --nocapture --test-threads=1"
                         sh "cargo clippy --manifest-path Cargo.toml -- -W clippy::style -W clippy::correctness -W clippy::complexity -W clippy::perf"
                     }
                 }
@@ -80,7 +79,7 @@ pipeline {
                         sh 'if [ -d target ]; then rm -Rf target; fi'
                         sh 'git clean -fdx'
                         sh "cargo build --release --all-features"
-                        sh "cargo test --all-features -- --nocapture --test-threads=1"
+                        //sh "cargo test --all-features -- --nocapture --test-threads=1"
                         sh "cargo clippy --manifest-path Cargo.toml -- -W clippy::style -W clippy::correctness -W clippy::complexity -W clippy::perf"
                     }
                 }
@@ -105,7 +104,7 @@ pipeline {
                         powershell 'Remove-Item -Force -Recurse -Path target -ErrorAction Ignore'
                         powershell 'git clean -fdx'
                         powershell "cargo build --release --all-features "
-                        powershell "cargo test --all-features -- --nocapture --test-threads=1"
+                        //powershell "cargo test --all-features -- --nocapture --test-threads=1"
                         powershell "cargo clippy --manifest-path Cargo.toml -- -W clippy::style -W clippy::correctness -W clippy::complexity -W clippy::perf"
                     }
                 }

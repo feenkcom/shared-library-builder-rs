@@ -1,4 +1,6 @@
-#[derive(Debug, Clone, Default)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct LibraryOptions {
     is_static: bool,
 }

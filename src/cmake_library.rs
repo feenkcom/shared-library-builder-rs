@@ -7,7 +7,9 @@ use rustc_version::version_meta;
 use std::error::Error;
 use std::path::{Path, PathBuf};
 
-#[derive(Debug, Clone)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CMakeLibrary {
     name: String,
     compiled_name: CompiledLibraryName,
@@ -121,6 +123,7 @@ impl CMakeLibrary {
     }
 }
 
+#[typetag::serde]
 impl Library for CMakeLibrary {
     fn location(&self) -> &LibraryLocation {
         &self.source_location
@@ -330,7 +333,7 @@ impl From<CMakeLibrary> for Box<dyn Library> {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct CMakeLibraryDefines {
     common: Vec<(String, String)>,
     when_shared: Vec<(String, String)>,

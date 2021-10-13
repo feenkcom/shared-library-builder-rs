@@ -4,7 +4,9 @@ use std::error::Error;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
-#[derive(Debug, Clone)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ZipUrlLocation {
     url: String,
     sources: Option<PathBuf>,

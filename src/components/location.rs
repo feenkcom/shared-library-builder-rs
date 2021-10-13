@@ -2,7 +2,9 @@ use crate::{Library, LibraryCompilationContext, PathLocation};
 use std::error::Error;
 use std::path::{Path, PathBuf};
 
-#[derive(Debug, Clone)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum LibraryLocation {
     #[cfg(feature = "git-location")]
     Git(crate::GitLocation),

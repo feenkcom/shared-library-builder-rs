@@ -1,9 +1,11 @@
 use crate::{LibraryCompilationContext, LibraryDependencies, LibraryLocation, LibraryOptions};
+use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use user_error::UserFacingError;
 
+#[typetag::serde(tag = "type")]
 pub trait Library: Debug + Send + Sync {
     fn location(&self) -> &LibraryLocation;
     fn release_location(&self) -> &LibraryLocation {
@@ -89,7 +91,10 @@ pub trait Library: Debug + Send + Sync {
 
     fn compiled_library_directories(&self, context: &LibraryCompilationContext) -> Vec<PathBuf>;
 
-    fn export_compiled_library(&self, context: &LibraryCompilationContext) -> Result<PathBuf, Box<dyn Error>> {
+    fn export_compiled_library(
+        &self,
+        context: &LibraryCompilationContext,
+    ) -> Result<PathBuf, Box<dyn Error>> {
         let compiled_library = self.compiled_library(context);
 
         let mut exported_path = context
@@ -211,7 +216,7 @@ pub trait Library: Debug + Send + Sync {
     fn clone_library(&self) -> Box<dyn Library>;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CompiledLibraryName {
     /// same as Library::name
     Default,

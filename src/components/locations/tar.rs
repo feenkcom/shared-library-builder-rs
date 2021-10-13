@@ -5,14 +5,16 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 use tar::Archive;
 
-#[derive(Debug, Clone)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TarUrlLocation {
     url: String,
     archive: TarArchive,
     sources: Option<PathBuf>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TarArchive {
     Gz,
     Xz,

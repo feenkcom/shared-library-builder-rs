@@ -5,7 +5,9 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::process::Command;
 
-#[derive(Clone, Debug)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RustLibrary {
     name: String,
     location: LibraryLocation,
@@ -56,6 +58,7 @@ impl RustLibrary {
     }
 }
 
+#[typetag::serde]
 impl Library for RustLibrary {
     fn location(&self) -> &LibraryLocation {
         &self.location

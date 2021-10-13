@@ -6,21 +6,22 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use url::Url;
 use user_error::UserFacingError;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GitLocation {
     repository: GitRepository,
     version: GitVersion,
     directory: Option<PathBuf>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GitRepository {
     GitHub(String, String),
     GitLab(String, String),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GitVersion {
     Tag(String),
     Commit(String),

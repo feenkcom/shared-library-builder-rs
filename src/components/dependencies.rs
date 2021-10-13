@@ -2,7 +2,9 @@ use crate::{Library, LibraryCompilationContext};
 use std::error::Error;
 use std::path::PathBuf;
 
-#[derive(Debug, Default)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct LibraryDependencies {
     dependencies: Vec<Box<dyn Library>>,
 }
