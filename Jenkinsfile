@@ -15,7 +15,7 @@ pipeline {
         GITHUB_TOKEN = credentials('githubrelease')
 
         REPOSITORY_OWNER = 'feenkcom'
-        REPOSITORY_NAME = 'shared-library-builder'
+        REPOSITORY_NAME = 'shared-library-builder-rs'
 
         MACOS_INTEL_TARGET = 'x86_64-apple-darwin'
         MACOS_M1_TARGET = 'aarch64-apple-darwin'

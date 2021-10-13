@@ -19,6 +19,7 @@ pub struct CMakeLibrary {
     dependencies: LibraryDependencies,
     options: LibraryOptions,
     files_to_delete: Vec<FileNamed>,
+    header_directories: Vec<PathBuf>,
 }
 
 impl CMakeLibrary {
@@ -32,20 +33,13 @@ impl CMakeLibrary {
             dependencies: LibraryDependencies::new(),
             options: Default::default(),
             files_to_delete: vec![],
+            header_directories: vec![Path::new("include").into_path_buf()],
         }
     }
 
-    fn with_defines(self, defines: CMakeLibraryDefines) -> Self {
-        Self {
-            name: self.name,
-            compiled_name: self.compiled_name,
-            source_location: self.source_location,
-            release_location: None,
-            defines,
-            dependencies: self.dependencies,
-            options: self.options,
-            files_to_delete: self.files_to_delete,
-        }
+    fn with_defines(mut self, defines: CMakeLibraryDefines) -> Self {
+        self.defines = defines;
+        self
     }
 
     pub fn defines(&self) -> &CMakeLibraryDefines {
@@ -67,59 +61,29 @@ impl CMakeLibrary {
         self.with_defines(defines)
     }
 
-    pub fn depends(self, library: Box<dyn Library>) -> Self {
-        Self {
-            name: self.name,
-            compiled_name: self.compiled_name,
-            source_location: self.source_location,
-            release_location: self.release_location,
-            defines: self.defines,
-            dependencies: self.dependencies.push(library),
-            options: self.options,
-            files_to_delete: self.files_to_delete,
-        }
+    pub fn depends(mut self, library: Box<dyn Library>) -> Self {
+        self.dependencies = self.dependencies.push(library);
+        self
     }
 
-    pub fn compiled_name(self, compiled_name: CompiledLibraryName) -> Self {
-        Self {
-            name: self.name,
-            compiled_name,
-            source_location: self.source_location,
-            release_location: self.release_location,
-            defines: self.defines,
-            dependencies: self.dependencies,
-            options: self.options,
-            files_to_delete: self.files_to_delete,
-        }
+    pub fn compiled_name(mut self, compiled_name: CompiledLibraryName) -> Self {
+        self.compiled_name = compiled_name;
+        self
     }
 
-    pub fn delete(self, entry_to_delete: impl Into<FileNamed>) -> Self {
-        let mut entries = self.files_to_delete;
-        entries.push(entry_to_delete.into());
-
-        Self {
-            name: self.name,
-            compiled_name: self.compiled_name,
-            source_location: self.source_location,
-            release_location: self.release_location,
-            defines: self.defines,
-            dependencies: self.dependencies,
-            options: self.options,
-            files_to_delete: entries,
-        }
+    pub fn delete(mut self, entry_to_delete: impl Into<FileNamed>) -> Self {
+        self.files_to_delete.push(entry_to_delete.into());
+        self
     }
 
-    pub fn with_release_location(self, release_location: Option<LibraryLocation>) -> Self {
-        Self {
-            name: self.name,
-            compiled_name: self.compiled_name,
-            source_location: self.source_location,
-            release_location,
-            defines: self.defines,
-            dependencies: self.dependencies,
-            options: self.options,
-            files_to_delete: self.files_to_delete,
-        }
+    pub fn with_release_location(mut self, release_location: Option<LibraryLocation>) -> Self {
+        self.release_location = release_location;
+        self
+    }
+
+    pub fn with_headers(mut self, header_directory: impl Into<PathBuf>) -> Self {
+        self.header_directories.push(header_directory.into());
+        self
     }
 }
 
@@ -279,10 +243,12 @@ impl Library for CMakeLibrary {
     fn native_library_include_headers(&self, context: &LibraryCompilationContext) -> Vec<PathBuf> {
         let mut dirs = vec![];
 
-        let directory = self.native_library_prefix(context).join("include");
+        for header_dir in &self.header_directories {
+            let directory = self.native_library_prefix(context).join(header_dir);
 
-        if directory.exists() {
-            dirs.push(directory);
+            if directory.exists() {
+                dirs.push(directory);
+            }
         }
 
         dirs
