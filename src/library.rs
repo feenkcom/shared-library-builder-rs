@@ -195,10 +195,12 @@ pub trait Library: Debug + Send + Sync {
 
     fn msvc_include_directories(&self) -> Vec<PathBuf> {
         let msvc = PathBuf::from("C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC\\14.29.30037");
+        let msvc2 = PathBuf::from("C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Enterprise\\VC\\Tools\\MSVC\\14.16.27023");
         let sdk = PathBuf::from("C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.19041.0");
 
         vec![
             msvc.join("include"),
+            msvc2.join("include"),
             sdk.join("ucrt"),
             sdk.join("shared"),
             sdk.join("um"),
@@ -209,7 +211,8 @@ pub trait Library: Debug + Send + Sync {
         vec![
             PathBuf::from("C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.19041.0\\um\\x64"),
             PathBuf::from("C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.19041.0\\ucrt\\x64"),
-            PathBuf::from("C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC\\14.29.30037\\lib\\x64")
+            PathBuf::from("C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC\\14.29.30037\\lib\\x64"),
+            PathBuf::from("C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Enterprise\\VC\\Tools\\MSVC\\14.16.27023\\lib\\x64")
         ]
     }
 
