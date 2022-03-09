@@ -60,14 +60,15 @@ pub trait Library: Debug + Send + Sync {
     }
 
     fn compile(&self, context: &LibraryCompilationContext) -> Result<PathBuf, Box<dyn Error>> {
+        if let Some(prebuilt_library) = self.retrieve_prebuilt_library(context) {
+            return Ok(prebuilt_library);
+        }
+
         if let Some(dependencies) = self.dependencies() {
             dependencies.ensure_requirements(context)?;
         }
 
         self.ensure_requirements(context);
-        if let Some(prebuilt_library) = self.retrieve_prebuilt_library(context) {
-            return Ok(prebuilt_library);
-        }
 
         if let Some(dependencies) = self.dependencies() {
             dependencies.ensure_sources(context)?;
