@@ -99,6 +99,10 @@ impl Library for RustLibrary {
             .arg("--manifest-path")
             .arg(self.crate_source_directory(context).join("Cargo.toml"));
 
+        if !self.features.is_empty() {
+            command.arg("--features").arg(self.features.join(" "));
+        }
+
         if context.is_release() {
             command.arg("--release");
         }
