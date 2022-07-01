@@ -117,6 +117,7 @@ impl Library for CMakeLibrary {
 
     fn exported_name(&self) -> &str {
         self.exported_name
+            .as_ref()
             .map(|name| name.as_str())
             .unwrap_or_else(|| self.name())
     }
