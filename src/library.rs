@@ -16,6 +16,13 @@ pub trait Library: Debug + Send + Sync {
         CompiledLibraryName::Default
     }
 
+    /// Return a name of the library when exporting as a shared library.
+    /// By default it is the same as a general library name, however, some libraries may have a custom naming,
+    /// for example zlib -> libz
+    fn exported_name(&self) -> &str {
+        self.name()
+    }
+
     fn source_directory(&self, context: &LibraryCompilationContext) -> PathBuf {
         self.location()
             .sources_directory(&PathBuf::from(self.name()), context)
@@ -107,7 +114,8 @@ pub trait Library: Debug + Send + Sync {
             std::fs::create_dir_all(&exported_path)?;
         }
 
-        exported_path = exported_path.join(self.compiled_library_name().file_name(self.name()));
+        exported_path =
+            exported_path.join(self.compiled_library_name().file_name(self.exported_name()));
 
         // prevent from overwriting
         if exported_path != compiled_library {

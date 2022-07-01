@@ -1,12 +1,12 @@
 use crate::{Library, LibraryCompilationContext};
 use downloader::{Download, Downloader};
+use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fs::create_dir_all;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use url::Url;
 use user_error::UserFacingError;
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GitLocation {

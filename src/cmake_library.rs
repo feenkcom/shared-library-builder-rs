@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CMakeLibrary {
     name: String,
+    exported_name: Option<String>,
     compiled_name: CompiledLibraryName,
     source_location: LibraryLocation,
     release_location: Option<LibraryLocation>,
@@ -26,6 +27,7 @@ impl CMakeLibrary {
     pub fn new(name: &str, location: LibraryLocation) -> Self {
         Self {
             name: name.to_owned(),
+            exported_name: None,
             compiled_name: CompiledLibraryName::Default,
             source_location: location,
             release_location: None,
@@ -71,6 +73,11 @@ impl CMakeLibrary {
         self
     }
 
+    pub fn with_exported_name(mut self, exported_name: impl Into<String>) -> Self {
+        self.exported_name = Some(exported_name.into());
+        self
+    }
+
     /// Set a file to delete when building a static library
     pub fn delete(mut self, entry_to_delete: impl Into<FileNamed>) -> Self {
         self.files_to_delete_static.push(entry_to_delete.into());
@@ -106,6 +113,12 @@ impl Library for CMakeLibrary {
 
     fn compiled_library_name(&self) -> CompiledLibraryName {
         self.compiled_name.clone()
+    }
+
+    fn exported_name(&self) -> &str {
+        self.exported_name
+            .map(|name| name.as_str())
+            .unwrap_or_else(|| self.name())
     }
 
     fn ensure_sources(&self, options: &LibraryCompilationContext) -> Result<(), Box<dyn Error>> {

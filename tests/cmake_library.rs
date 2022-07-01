@@ -1,5 +1,7 @@
+use shared_library_builder::{
+    CMakeLibrary, CompiledLibraryName, GitLocation, Library, LibraryLocation,
+};
 use std::error::Error;
-use shared_library_builder::{CMakeLibrary, CompiledLibraryName, GitLocation, Library, LibraryLocation};
 
 fn libgit2_library() -> CMakeLibrary {
     let libssh2 = CMakeLibrary::new(
@@ -25,7 +27,7 @@ fn libgit2_library() -> CMakeLibrary {
 }
 
 #[test]
-pub fn serde_serialize() -> Result<(), Box<dyn Error>>{
+pub fn serde_serialize() -> Result<(), Box<dyn Error>> {
     let libgit2 = libgit2_library();
 
     let a_library = &libgit2 as &dyn Library;
