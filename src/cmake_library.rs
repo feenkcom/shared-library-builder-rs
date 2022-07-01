@@ -18,7 +18,7 @@ pub struct CMakeLibrary {
     defines: CMakeLibraryDefines,
     dependencies: LibraryDependencies,
     options: LibraryOptions,
-    files_to_delete: Vec<FileNamed>,
+    files_to_delete_static: Vec<FileNamed>,
     header_directories: Vec<PathBuf>,
 }
 
@@ -32,7 +32,7 @@ impl CMakeLibrary {
             defines: Default::default(),
             dependencies: LibraryDependencies::new(),
             options: Default::default(),
-            files_to_delete: vec![],
+            files_to_delete_static: vec![],
             header_directories: vec![Path::new("include").to_path_buf()],
         }
     }
@@ -71,8 +71,9 @@ impl CMakeLibrary {
         self
     }
 
+    /// Set a file to delete when building a static library
     pub fn delete(mut self, entry_to_delete: impl Into<FileNamed>) -> Self {
-        self.files_to_delete.push(entry_to_delete.into());
+        self.files_to_delete_static.push(entry_to_delete.into());
         self
     }
 
@@ -200,9 +201,11 @@ impl Library for CMakeLibrary {
 
         config.build();
 
-        for entry_to_delete in &self.files_to_delete {
-            let lib = entry_to_delete.within(out_dir.join("lib"));
-            std::fs::remove_file(lib.as_path_buf().unwrap()).unwrap();
+        if self.is_static() {
+            for entry_to_delete in &self.files_to_delete_static {
+                let lib = entry_to_delete.within(out_dir.join("lib"));
+                std::fs::remove_file(lib.as_path_buf().unwrap()).unwrap();
+            }
         }
 
         if options.is_windows() {

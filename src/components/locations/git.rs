@@ -212,6 +212,14 @@ impl GitLocation {
                         Some(ref custom_directory) => context.build_root().join(custom_directory),
                     };
 
+                    let binary_name = library.compiled_library_name().file_name(library.name());
+                    let binary_path = build_directory.join(binary_name);
+
+                    if binary_path.exists() {
+                        println!("{} already exists.", binary_path.display());
+                        return Some(binary_path);
+                    }
+
                     if !build_directory.exists() {
                         create_dir_all(&build_directory).unwrap();
                     }
