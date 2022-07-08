@@ -1,12 +1,14 @@
-use crate::{Library, LibraryCompilationContext};
-use downloader::{Download, Downloader};
-use serde::{Deserialize, Serialize};
 use std::error::Error;
-use std::fs::create_dir_all;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+
+#[cfg(feature = "downloader")]
+use downloader::{Download, Downloader};
+use serde::{Deserialize, Serialize};
 use url::Url;
 use user_error::UserFacingError;
+
+use crate::{Library, LibraryCompilationContext};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GitLocation {
@@ -198,6 +200,17 @@ impl GitLocation {
         Ok(())
     }
 
+    #[cfg(not(feature = "downloader"))]
+    pub(crate) fn retrieve_prebuilt_library(
+        &self,
+        _library: Box<dyn Library>,
+        _default_source_directory: &Path,
+        _context: &LibraryCompilationContext,
+    ) -> Option<PathBuf> {
+        None
+    }
+
+    #[cfg(feature = "downloader")]
     pub(crate) fn retrieve_prebuilt_library(
         &self,
         library: Box<dyn Library>,
@@ -221,7 +234,7 @@ impl GitLocation {
                     }
 
                     if !build_directory.exists() {
-                        create_dir_all(&build_directory).unwrap();
+                        std::fs::create_dir_all(&build_directory).unwrap();
                     }
 
                     let mut downloader = Downloader::builder()

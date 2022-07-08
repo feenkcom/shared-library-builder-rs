@@ -33,7 +33,7 @@ serde_json = "1.0"
 
 [features]
 cmake-library = [ "cmake", "pkg-config" ]
-git-location = ["url", "downloader"]
+git-location = ["url"]
 zip-location = ["zip", "zip-extensions", "url", "downloader"]
 tar-location = ["tar", "flate2", "xz2", "url", "downloader"]
 
