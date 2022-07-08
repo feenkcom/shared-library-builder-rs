@@ -20,14 +20,17 @@ use clap::Parser;
 #[derive(Parser, Clone, Debug)]
 struct BuildOptions {
     #[clap(long, ignore_case = true)]
-    target: Option<LibraryTarget>
+    target: Option<LibraryTarget>,
 }
 
-pub fn build_standalone<F>(f: F) -> Result<(), Box<dyn std::error::Error>> where
-    F: FnOnce(LibraryTarget) -> Result<Box<dyn Library>, Box<dyn std::error::Error>> {
-
+pub fn build_standalone<F>(f: F) -> Result<(), Box<dyn std::error::Error>>
+where
+    F: FnOnce(LibraryTarget) -> Result<Box<dyn Library>, Box<dyn std::error::Error>>,
+{
     let options: BuildOptions = BuildOptions::parse();
-    let target = options.target.unwrap_or_else(|| LibraryTarget::for_current_platform());
+    let target = options
+        .target
+        .unwrap_or_else(|| LibraryTarget::for_current_platform());
 
     let library = f(target)?;
 

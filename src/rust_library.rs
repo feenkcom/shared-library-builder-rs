@@ -139,9 +139,19 @@ impl Library for RustLibrary {
     fn ensure_requirements(&self, _options: &LibraryCompilationContext) {
         self.requires.iter().for_each(|each| {
             which::which(each).unwrap_or_else(|_| {
+                let key = "PATH";
+                match std::env::var_os(key) {
+                    Some(paths) => {
+                        println!("PATH:");
+                        for path in std::env::split_paths(&paths) {
+                            println!("  '{}'", path.display());
+                        }
+                    }
+                    None => println!("{} is not defined in the environment.", key),
+                }
                 panic!(
-                    "{} must exist in the system. Make sure it is in the PATH",
-                    each
+                    "{} must exist in the system. Make sure it is in the {}",
+                    each, key
                 )
             });
         })
