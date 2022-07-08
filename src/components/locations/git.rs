@@ -100,6 +100,17 @@ impl GitLocation {
         }
     }
 
+    pub fn tag_or_latest(self, tag: Option<impl Into<String>>) -> Self {
+        let version = tag
+            .map(|tag| GitVersion::Tag(tag.into()))
+            .unwrap_or_else(|| GitVersion::Latest);
+        Self {
+            repository: self.repository,
+            version,
+            directory: self.directory,
+        }
+    }
+
     pub fn directory(self, directory: impl Into<PathBuf>) -> Self {
         Self {
             repository: self.repository,
