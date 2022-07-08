@@ -23,19 +23,29 @@ struct BuildOptions {
     target: Option<LibraryTarget>,
 }
 
-pub fn build_standalone<F>(f: F) -> Result<(), Box<dyn std::error::Error>>
+pub fn with_target<F>(f: F) -> Result<(), Box<dyn std::error::Error>>
 where
-    F: FnOnce(LibraryTarget) -> Result<Box<dyn Library>, Box<dyn std::error::Error>>,
+    F: FnOnce(LibraryTarget) -> Result<(), Box<dyn std::error::Error>>,
 {
     let options: BuildOptions = BuildOptions::parse();
     let target = options
         .target
         .unwrap_or_else(|| LibraryTarget::for_current_platform());
 
-    let library = f(target)?;
-
-    let context = LibraryCompilationContext::new("target", "target", target, false);
-    let compiled_library = library.compile(&context)?;
-    println!("Compiled {}", compiled_library.display());
+    f(target)?;
     Ok(())
+}
+
+pub fn build_standalone<F>(f: F) -> Result<(), Box<dyn std::error::Error>>
+where
+    F: FnOnce(LibraryTarget) -> Result<Box<dyn Library>, Box<dyn std::error::Error>>,
+{
+    with_target(|target| {
+        let library = f(target)?;
+
+        let context = LibraryCompilationContext::new("target", "target", target, false);
+        let compiled_library = library.compile(&context)?;
+        println!("Compiled {}", compiled_library.display());
+        Ok(())
+    })
 }
