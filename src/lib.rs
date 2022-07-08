@@ -15,10 +15,19 @@ pub use crate::library::{CompiledLibraryName, Library};
 pub use cmake_library::CMakeLibrary;
 pub use rust_library::RustLibrary;
 
+use clap::Parser;
+
+#[derive(Parser, Clone, Debug)]
+struct BuildOptions {
+    #[clap(long, ignore_case = true)]
+    target: Option<LibraryTarget>
+}
+
 pub fn build_standalone<F>(f: F) -> Result<(), Box<dyn std::error::Error>> where
     F: FnOnce(LibraryTarget) -> Result<Box<dyn Library>, Box<dyn std::error::Error>> {
 
-    let target = LibraryTarget::for_current_platform();
+    let options: BuildOptions = BuildOptions::parse();
+    let target = options.target.unwrap_or_else(|| LibraryTarget::for_current_platform());
 
     let library = f(target)?;
 
