@@ -19,6 +19,11 @@ impl LibraryTarget {
         if let Ok(build_string) = std::env::var("CARGO_BUILD_TARGET") {
             return Self::from_str(build_string.as_str()).unwrap();
         }
+        Self::for_current_host()
+    }
+
+    /// Return a triple that represents the current host
+    pub fn for_current_host() -> Self {
         match std::env::consts::OS {
             "linux" => match std::env::consts::ARCH {
                 "x86_64" => Self::X8664UnknownlinuxGNU,
