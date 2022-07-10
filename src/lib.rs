@@ -9,6 +9,7 @@ mod library;
 mod rust_library;
 
 pub use components::*;
+use std::path::Path;
 
 pub use crate::library::{CompiledLibraryName, Library};
 #[cfg(feature = "cmake-library")]
@@ -43,7 +44,12 @@ where
     with_target(|target| {
         let library = f(target)?;
 
-        let context = LibraryCompilationContext::new("target", "target", target, false);
+        let target_dir = Path::new("target");
+        let src_dir = target_dir.join("src");
+        if !src_dir.exists() {
+            std::fs::create_dir_all(src_dir.as_path())?;
+        }
+        let context = LibraryCompilationContext::new(src_dir, "target", target, false);
         let compiled_library = library.compile(&context)?;
         println!("Compiled {}", compiled_library.display());
         Ok(())
