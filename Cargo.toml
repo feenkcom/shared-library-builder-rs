@@ -15,7 +15,7 @@ user-error = "1.2.8"
 file-matcher = "0.7"
 to_absolute = "0.1"
 clap = {version = "3.2", features = [ "derive", "color" ] }
-cmake = { git = "https://github.com/syrel/cmake-rs", rev = "cce9d58d87bd5dd95afb9183fdbbf4cb5d4b2255", optional = true }
+cmake = { git = "https://github.com/syrel/cmake-rs", rev = "be192de131a349e76a0954eb83a915eaf39054a6", optional = true }
 pkg-config = { version = "0.3", optional = true }
 downloader = { version = "0.2.6", optional = true }
 url = { version = "2.2.2", optional = true }
