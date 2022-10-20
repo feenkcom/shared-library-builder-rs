@@ -139,10 +139,10 @@ impl Library for CMakeLibrary {
     fn options_mut(&mut self) -> &mut LibraryOptions {
         &mut self.options
     }
-    fn force_compile(&self, options: &LibraryCompilationContext) -> Result<(), Box<dyn Error>> {
-        let mut config = cmake::Config::new(self.source_directory(options));
+    fn force_compile(&self, context: &LibraryCompilationContext) -> Result<(), Box<dyn Error>> {
+        let mut config = cmake::Config::new(self.source_directory(context));
 
-        let out_dir = self.native_library_prefix(options);
+        let out_dir = self.native_library_prefix(context);
         if !out_dir.exists() {
             std::fs::create_dir_all(&out_dir)
                 .unwrap_or_else(|_| panic!("Could not create {:?}", &out_dir));
@@ -150,18 +150,18 @@ impl Library for CMakeLibrary {
 
         config
             .static_crt(true)
-            .target(&options.target().to_string())
+            .target(&context.target().to_string())
             .host(&version_meta().unwrap().host)
             .out_dir(&out_dir)
-            .profile(&options.profile());
+            .profile(&context.profile());
 
         println!(
             "Building CMake library for target = {:?} and host = {:?}",
-            &options.target().to_string(),
+            &context.target().to_string(),
             &version_meta().unwrap().host
         );
 
-        let mut cmake_prefix_paths = self.all_native_library_prefixes(options);
+        let mut cmake_prefix_paths = self.all_native_library_prefixes(context);
         if let Ok(ref path) = std::env::var("CMAKE_PREFIX_PATH") {
             cmake_prefix_paths.push(Path::new(path).to_path_buf());
         }
@@ -174,7 +174,7 @@ impl Library for CMakeLibrary {
 
         config.define("CMAKE_PREFIX_PATH", &cmake_prefix_path);
 
-        match options.target() {
+        match context.target() {
             LibraryTarget::X8664appleDarwin => {
                 config.define("CMAKE_OSX_ARCHITECTURES", "x86_64");
             }
@@ -184,8 +184,12 @@ impl Library for CMakeLibrary {
             _ => {}
         }
 
+        if context.is_mac() {
+            config.env("MACOSX_DEPLOYMENT_TARGET", context.macos_target_version());
+        }
+
         let ld_library_paths = self
-            .all_native_library_prefixes(options)
+            .all_native_library_prefixes(context)
             .into_iter()
             .map(|each| each.join("lib"))
             .collect::<Vec<PathBuf>>();
@@ -194,7 +198,7 @@ impl Library for CMakeLibrary {
             config.cflag(format!("-L{}", library_path.display()));
         }
 
-        let mut pkg_config_paths = self.all_pkg_config_directories(options);
+        let mut pkg_config_paths = self.all_pkg_config_directories(context);
         if let Ok(ref path) = std::env::var("PKG_CONFIG_PATH") {
             std::env::split_paths(path).for_each(|path| pkg_config_paths.push(path));
         }
@@ -222,7 +226,7 @@ impl Library for CMakeLibrary {
             }
         }
 
-        if options.is_windows() {
+        if context.is_windows() {
             let libraries = FilesNamed::wildmatch("lib*.lib")
                 .within(out_dir.join("lib"))
                 .find()?;

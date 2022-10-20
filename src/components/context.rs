@@ -1,12 +1,15 @@
 use crate::LibraryTarget;
 use std::path::{Path, PathBuf};
 
+pub const DEFAULT_MACOSX_DEPLOYMENT_TARGET: &str = "10.10";
+
 #[derive(Debug, Clone)]
 pub struct LibraryCompilationContext {
     sources_root: PathBuf,
     build_root: PathBuf,
     target: LibraryTarget,
     debug: bool,
+    macos_target_version: Option<String>,
 }
 
 impl LibraryCompilationContext {
@@ -28,6 +31,7 @@ impl LibraryCompilationContext {
             build_root,
             target,
             debug,
+            macos_target_version: None,
         }
     }
 
@@ -40,7 +44,15 @@ impl LibraryCompilationContext {
             build_root: root.join("build"),
             target: LibraryTarget::for_current_platform(),
             debug: false,
+            macos_target_version: None,
         }
+    }
+
+    pub fn macos_target_version(&self) -> String {
+        self.macos_target_version
+            .clone()
+            .or_else(|| std::env::var("MACOSX_DEPLOYMENT_TARGET").ok())
+            .unwrap_or_else(|| DEFAULT_MACOSX_DEPLOYMENT_TARGET.to_string())
     }
 
     pub fn sources_root(&self) -> &Path {

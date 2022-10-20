@@ -111,7 +111,12 @@ impl Library for RustLibrary {
             command.env("RUSTFLAGS", "-C target-feature=+crt-static");
         }
         if context.is_mac() {
-            command.env("RUSTFLAGS", "-C link-arg=-mmacosx-version-min=10.10");
+            let version = context.macos_target_version();
+            command.env(
+                "RUSTFLAGS",
+                format!("-C link-arg=-mmacosx-version-min={}", &version),
+            );
+            command.env("MACOSX_DEPLOYMENT_TARGET", &version);
         }
 
         let status = command.status().unwrap();
