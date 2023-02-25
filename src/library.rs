@@ -237,6 +237,8 @@ impl CompiledLibraryName {
     pub fn platform_library_ending(&self) -> String {
         #[cfg(target_os = "linux")]
         let ending = "so";
+        #[cfg(target_os = "android")]
+        let ending = "so";
         #[cfg(target_os = "macos")]
         let ending = "dylib";
         #[cfg(target_os = "windows")]
@@ -246,6 +248,8 @@ impl CompiledLibraryName {
 
     fn platform_library_name(&self, name: &str) -> String {
         #[cfg(target_os = "linux")]
+        let binary_name = format!("lib{}.so", name);
+        #[cfg(target_os = "android")]
         let binary_name = format!("lib{}.so", name);
         #[cfg(target_os = "macos")]
         let binary_name = format!("lib{}.dylib", name);
