@@ -6,6 +6,7 @@ use file_matcher::{FileNamed, FilesNamed};
 use rustc_version::version_meta;
 use std::error::Error;
 use std::path::{Path, PathBuf};
+use cmake::Config;
 
 use serde::{Deserialize, Serialize};
 
@@ -188,9 +189,10 @@ impl Library for CMakeLibrary {
             config.env("MACOSX_DEPLOYMENT_TARGET", context.macos_target_version());
         }
 
-        // trick cmake into thinking that we build on linux, otherwise cmake fails
         if context.is_android() {
+            // trick cmake into thinking that we build on linux, otherwise cmake fails
             config.define("CMAKE_SYSTEM_NAME", "Linux");
+            config.define("ANDROID_PLATFORM", context.android_target_api());
         }
 
         let ld_library_paths = self
