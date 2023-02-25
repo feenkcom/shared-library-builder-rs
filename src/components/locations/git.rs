@@ -236,7 +236,9 @@ impl GitLocation {
                         Some(ref custom_directory) => context.build_root().join(custom_directory),
                     };
 
-                    let binary_name = library.compiled_library_name().file_name(library.name());
+                    let binary_name = library
+                        .compiled_library_name()
+                        .file_name(library.name(), context.target());
                     let binary_path = build_directory.join(binary_name);
 
                     if binary_path.exists() {
@@ -258,11 +260,10 @@ impl GitLocation {
                         owner,
                         repo,
                         tag,
-                        library.compiled_library_name().file_name(&format!(
-                            "{}-{}",
-                            library.name(),
-                            context.target().to_string()
-                        ))
+                        library.compiled_library_name().file_name(
+                            &format!("{}-{}", library.name(), context.target().to_string()),
+                            context.target()
+                        )
                     );
 
                     let to_download = Download::new(&url);
@@ -283,8 +284,11 @@ impl GitLocation {
                     };
 
                     let downloaded_file_name = download_result.file_name;
-                    let proper_file_name = downloaded_file_name
-                        .with_file_name(library.compiled_library_name().file_name(library.name()));
+                    let proper_file_name = downloaded_file_name.with_file_name(
+                        library
+                            .compiled_library_name()
+                            .file_name(library.name(), context.target()),
+                    );
 
                     std::fs::rename(downloaded_file_name, &proper_file_name).unwrap();
 

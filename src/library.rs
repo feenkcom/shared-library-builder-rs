@@ -1,4 +1,6 @@
-use crate::{LibraryCompilationContext, LibraryDependencies, LibraryLocation, LibraryOptions};
+use crate::{
+    LibraryCompilationContext, LibraryDependencies, LibraryLocation, LibraryOptions, LibraryTarget,
+};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt::Debug;
@@ -114,8 +116,10 @@ pub trait Library: Debug + Send + Sync {
             std::fs::create_dir_all(&exported_path)?;
         }
 
-        exported_path =
-            exported_path.join(self.compiled_library_name().file_name(self.exported_name()));
+        exported_path = exported_path.join(
+            self.compiled_library_name()
+                .file_name(self.exported_name(), context.target()),
+        );
 
         // prevent from overwriting
         if exported_path != compiled_library {
@@ -134,7 +138,9 @@ pub trait Library: Debug + Send + Sync {
                     .filter(|each| each.is_ok())
                     .map(|each| each.unwrap())
                     .filter(|each| each.path().is_file())
-                    .filter(|each| compiled_library_name.matches(library_name, &each.path()))
+                    .filter(|each| {
+                        compiled_library_name.matches(library_name, &each.path(), context.target())
+                    })
                     .map(|each| each.path())
                     .collect::<Vec<PathBuf>>();
 
@@ -234,46 +240,52 @@ pub enum CompiledLibraryName {
 }
 
 impl CompiledLibraryName {
-    pub fn platform_library_ending(&self) -> String {
-        #[cfg(target_os = "linux")]
-        let ending = "so";
-        #[cfg(target_os = "android")]
-        let ending = "so";
-        #[cfg(target_os = "macos")]
-        let ending = "dylib";
-        #[cfg(target_os = "windows")]
-        let ending = "dll";
-        ending.to_string()
+    pub fn platform_library_ending(&self, target: &LibraryTarget) -> String {
+        if target.is_linux() {
+            return "so".to_string();
+        }
+        if target.is_mac() {
+            return "dylib".to_string();
+        }
+
+        if target.is_android() {
+            return "so".to_string();
+        }
+
+        if target.is_windows() {
+            return "dll".to_string();
+        }
+
+        panic!("Unsupported target: {}", target)
     }
 
-    fn platform_library_name(&self, name: &str) -> String {
-        #[cfg(target_os = "linux")]
-        let binary_name = format!("lib{}.so", name);
-        #[cfg(target_os = "android")]
-        let binary_name = format!("lib{}.so", name);
-        #[cfg(target_os = "macos")]
-        let binary_name = format!("lib{}.dylib", name);
-        #[cfg(target_os = "windows")]
-        let binary_name = format!("{}.dll", name);
-        binary_name
+    fn platform_library_name(&self, name: &str, target: &LibraryTarget) -> String {
+        if target.is_unix() {
+            return format!("lib{}.{}", name, self.platform_library_ending(target));
+        }
+        if target.is_windows() {
+            return format!("{}.{}", name, self.platform_library_ending(target));
+        }
+
+        panic!("Unsupported target: {}", target)
     }
 
-    pub fn file_name(&self, library_name: &str) -> String {
-        self.platform_library_name(library_name)
+    pub fn file_name(&self, library_name: &str, target: &LibraryTarget) -> String {
+        self.platform_library_name(library_name, target)
     }
 
-    pub fn matches(&self, library_name: &str, path: &Path) -> bool {
+    pub fn matches(&self, library_name: &str, path: &Path, target: &LibraryTarget) -> bool {
         match path.file_name() {
             None => false,
             Some(actual_name) => match actual_name.to_str() {
                 None => false,
                 Some(actual_name) => match self {
                     CompiledLibraryName::Default => {
-                        let expected_name = self.platform_library_name(library_name);
+                        let expected_name = self.platform_library_name(library_name, target);
                         actual_name.eq_ignore_ascii_case(&expected_name)
                     }
                     CompiledLibraryName::Matching(substring) => {
-                        actual_name.contains(&format!(".{}", self.platform_library_ending()))
+                        actual_name.contains(&format!(".{}", self.platform_library_ending(target)))
                             && actual_name.contains(substring)
                     }
                 },

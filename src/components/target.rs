@@ -57,14 +57,14 @@ impl LibraryTarget {
     }
 
     pub fn is_unix(&self) -> bool {
-        self.is_linux() | self.is_mac()
+        self.is_linux() | self.is_mac() | self.is_android()
     }
 
     pub fn is_linux(&self) -> bool {
         match self {
             Self::X8664UnknownlinuxGNU => true,
             Self::AArch64UnknownlinuxGNU => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -72,7 +72,7 @@ impl LibraryTarget {
         match self {
             Self::X8664appleDarwin => true,
             Self::AArch64appleDarwin => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -80,7 +80,7 @@ impl LibraryTarget {
         match self {
             Self::X8664pcWindowsMsvc => true,
             Self::AArch64pcWindowsMsvc => true,
-            _ => false
+            _ => false,
         }
     }
 
