@@ -14,6 +14,8 @@ pub enum LibraryTarget {
     X8664UnknownlinuxGNU,
     #[strum(serialize = "aarch64-unknown-linux-gnu")]
     AArch64UnknownlinuxGNU,
+    #[strum(serialize = "aarch64-linux-android")]
+    AArch64LinuxAndroid,
 }
 
 impl LibraryTarget {
@@ -30,6 +32,10 @@ impl LibraryTarget {
             "linux" => match std::env::consts::ARCH {
                 "x86_64" => Self::X8664UnknownlinuxGNU,
                 "aarch64" => Self::AArch64UnknownlinuxGNU,
+                _ => panic!("Unsupported ARCH"),
+            },
+            "android" => match std::env::consts::ARCH {
+                "aarch64" => Self::AArch64LinuxAndroid,
                 _ => panic!("Unsupported ARCH"),
             },
             "macos" => match std::env::consts::ARCH {
@@ -61,7 +67,8 @@ impl LibraryTarget {
             Self::X8664pcWindowsMsvc => false,
             Self::AArch64pcWindowsMsvc => false,
             Self::X8664UnknownlinuxGNU => true,
-            Self::AArch64UnknownlinuxGNU => true
+            Self::AArch64UnknownlinuxGNU => true,
+            Self::AArch64LinuxAndroid => true
         }
     }
 
@@ -72,7 +79,8 @@ impl LibraryTarget {
             Self::X8664pcWindowsMsvc => false,
             Self::AArch64pcWindowsMsvc => false,
             Self::X8664UnknownlinuxGNU => false,
-            Self::AArch64UnknownlinuxGNU => false
+            Self::AArch64UnknownlinuxGNU => false,
+            Self::AArch64LinuxAndroid => false
         }
     }
 
@@ -83,7 +91,8 @@ impl LibraryTarget {
             Self::X8664pcWindowsMsvc => true,
             Self::AArch64pcWindowsMsvc => true,
             Self::X8664UnknownlinuxGNU => false,
-            Self::AArch64UnknownlinuxGNU => false
+            Self::AArch64UnknownlinuxGNU => false,
+            Self::AArch64LinuxAndroid => false
         }
     }
 }
