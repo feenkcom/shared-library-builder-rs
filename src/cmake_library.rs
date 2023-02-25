@@ -188,6 +188,11 @@ impl Library for CMakeLibrary {
             config.env("MACOSX_DEPLOYMENT_TARGET", context.macos_target_version());
         }
 
+        // trick cmake into thinking that we build on linux, otherwise cmake fails
+        if context.is_android() {
+            config.define("CMAKE_SYSTEM_NAME", "Linux");
+        }
+
         let ld_library_paths = self
             .all_native_library_prefixes(context)
             .into_iter()

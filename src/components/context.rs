@@ -94,6 +94,9 @@ impl LibraryCompilationContext {
     pub fn is_windows(&self) -> bool {
         self.target().is_windows()
     }
+    pub fn is_android(&self) -> bool {
+        self.target.is_android()
+    }
 
     pub fn profile(&self) -> &str {
         if self.debug {
