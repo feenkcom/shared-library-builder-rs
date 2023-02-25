@@ -190,6 +190,7 @@ impl Library for CMakeLibrary {
         }
 
         if context.is_android() {
+            configure_android_path(&mut config);
             // trick cmake into thinking that we build on linux, otherwise cmake fails
             config.define("CMAKE_SYSTEM_NAME", "Linux");
             config.define("ANDROID_PLATFORM", context.android_target_api());
@@ -378,4 +379,23 @@ impl CMakeLibraryDefines {
             when_static,
         }
     }
+}
+
+fn configure_android_path(command: &mut Config) {
+    let new_path = format!(
+        "{}:{}",
+        std::env::var("ANDROID_CLANG").expect("ANDROID_CLANG must be set"),
+        std::env::var("PATH").expect("PATH must be set")
+    );
+
+    command.env(
+        "PATH",
+        new_path
+    );
+
+    let ndk_root = std::env::var("ANDROID_NDK").or_else(|_|{
+        std::env::var("NDK_HOME")
+    }).expect("ANDROID_NDK or NDK_HOME must be defined");
+
+    command.env("ANDROID_NDK_ROOT", ndk_root);
 }
