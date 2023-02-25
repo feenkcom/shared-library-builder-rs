@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 pub const DEFAULT_MACOSX_DEPLOYMENT_TARGET_X86_64: &str = "10.10";
 pub const DEFAULT_MACOSX_DEPLOYMENT_TARGET_AARCH64: &str = "11.0";
+pub const DEFAULT_ANDROID_TARGET_API: &str = "30";
 
 #[derive(Debug, Clone)]
 pub struct LibraryCompilationContext {
@@ -11,6 +12,7 @@ pub struct LibraryCompilationContext {
     target: LibraryTarget,
     debug: bool,
     macos_target_version: Option<String>,
+    android_target_api: Option<String>,
 }
 
 impl LibraryCompilationContext {
@@ -33,6 +35,7 @@ impl LibraryCompilationContext {
             target,
             debug,
             macos_target_version: None,
+            android_target_api: None,
         }
     }
 
@@ -46,6 +49,7 @@ impl LibraryCompilationContext {
             target: LibraryTarget::for_current_platform(),
             debug: false,
             macos_target_version: None,
+            android_target_api: None,
         }
     }
 
@@ -60,6 +64,13 @@ impl LibraryCompilationContext {
                 })
                 .to_string()
             })
+    }
+
+    pub fn android_target_api(&self) -> String {
+        self.android_target_api
+            .clone()
+            .or_else(|| std::env::var("ANDROID_TARGET_API").ok())
+            .unwrap_or_else(|| DEFAULT_ANDROID_TARGET_API.to_string())
     }
 
     pub fn sources_root(&self) -> &Path {
