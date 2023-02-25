@@ -62,13 +62,9 @@ impl LibraryTarget {
 
     pub fn is_linux(&self) -> bool {
         match self {
-            Self::X8664appleDarwin => false,
-            Self::AArch64appleDarwin => false,
-            Self::X8664pcWindowsMsvc => false,
-            Self::AArch64pcWindowsMsvc => false,
             Self::X8664UnknownlinuxGNU => true,
             Self::AArch64UnknownlinuxGNU => true,
-            Self::AArch64LinuxAndroid => true
+            _ => false
         }
     }
 
@@ -76,23 +72,22 @@ impl LibraryTarget {
         match self {
             Self::X8664appleDarwin => true,
             Self::AArch64appleDarwin => true,
-            Self::X8664pcWindowsMsvc => false,
-            Self::AArch64pcWindowsMsvc => false,
-            Self::X8664UnknownlinuxGNU => false,
-            Self::AArch64UnknownlinuxGNU => false,
-            Self::AArch64LinuxAndroid => false
+            _ => false
         }
     }
 
     pub fn is_windows(&self) -> bool {
         match self {
-            Self::X8664appleDarwin => false,
-            Self::AArch64appleDarwin => false,
             Self::X8664pcWindowsMsvc => true,
             Self::AArch64pcWindowsMsvc => true,
-            Self::X8664UnknownlinuxGNU => false,
-            Self::AArch64UnknownlinuxGNU => false,
-            Self::AArch64LinuxAndroid => false
+            _ => false
+        }
+    }
+
+    pub fn is_android(&self) -> bool {
+        match self {
+            Self::AArch64LinuxAndroid => true,
+            _ => false,
         }
     }
 }
