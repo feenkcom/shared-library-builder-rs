@@ -84,7 +84,7 @@ impl Library for RustLibrary {
         let mut command = Command::new("cargo");
 
         if context.is_android() {
-            command.arg("apk").arg("--")
+            command.arg("apk").arg("--");
         }
 
         command.arg("build");
