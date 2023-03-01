@@ -82,6 +82,11 @@ impl Library for RustLibrary {
 
     fn force_compile(&self, context: &LibraryCompilationContext) -> Result<(), Box<dyn Error>> {
         let mut command = Command::new("cargo");
+
+        if context.is_android() {
+            command.arg("apk").arg("--")
+        }
+
         command.arg("build");
 
         if let Some(package) = &self.package {

@@ -2,11 +2,11 @@ use crate::{
     CompiledLibraryName, Library, LibraryCompilationContext, LibraryDependencies, LibraryLocation,
     LibraryOptions, LibraryTarget,
 };
+use cmake::Config;
 use file_matcher::{FileNamed, FilesNamed};
 use rustc_version::version_meta;
 use std::error::Error;
 use std::path::{Path, PathBuf};
-use cmake::Config;
 
 use serde::{Deserialize, Serialize};
 
@@ -388,14 +388,11 @@ fn configure_android_path(command: &mut Config) {
         std::env::var("PATH").expect("PATH must be set")
     );
 
-    command.env(
-        "PATH",
-        new_path
-    );
+    command.env("PATH", new_path);
 
-    let ndk_root = std::env::var("ANDROID_NDK").or_else(|_|{
-        std::env::var("NDK_HOME")
-    }).expect("ANDROID_NDK or NDK_HOME must be defined");
+    let ndk_root = std::env::var("ANDROID_NDK")
+        .or_else(|_| std::env::var("NDK_HOME"))
+        .expect("ANDROID_NDK or NDK_HOME must be defined");
 
     command.env("ANDROID_NDK_ROOT", ndk_root);
 }
