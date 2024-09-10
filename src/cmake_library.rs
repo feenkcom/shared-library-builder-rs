@@ -382,9 +382,11 @@ impl CMakeLibraryDefines {
 }
 
 fn configure_android_path(command: &mut Config) {
+    let ndk = ndk_build::ndk::Ndk::from_env().unwrap();
+
     let new_path = format!(
         "{}:{}",
-        std::env::var("ANDROID_CLANG").expect("ANDROID_CLANG must be set"),
+        ndk.toolchain_dir().unwrap().join("bin").display(),
         std::env::var("PATH").expect("PATH must be set")
     );
 
