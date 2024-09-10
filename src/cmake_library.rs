@@ -191,8 +191,7 @@ impl Library for CMakeLibrary {
 
         if context.is_android() {
             configure_android_path(&mut config);
-            // trick cmake into thinking that we build on linux, otherwise cmake fails
-            config.define("CMAKE_SYSTEM_NAME", "Linux");
+            config.define("CMAKE_SYSTEM_NAME", "Android");
             config.define("ANDROID_PLATFORM", context.android_target_api());
         }
 
