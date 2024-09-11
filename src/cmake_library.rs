@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use crate::{
     CompiledLibraryName, Library, LibraryCompilationContext, LibraryDependencies, LibraryLocation,
     LibraryOptions, LibraryTarget,
@@ -6,6 +7,8 @@ use cmake::Config;
 use file_matcher::{FileNamed, FilesNamed};
 use rustc_version::version_meta;
 use std::error::Error;
+use std::ffi::OsString;
+use std::fmt::format;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -20,6 +23,7 @@ pub struct CMakeLibrary {
     defines: CMakeLibraryDefines,
     dependencies: LibraryDependencies,
     options: LibraryOptions,
+    env_vars: HashMap<OsString, OsString>,
     files_to_delete_static: Vec<FileNamed>,
     header_directories: Vec<PathBuf>,
 }
@@ -35,6 +39,7 @@ impl CMakeLibrary {
             defines: Default::default(),
             dependencies: LibraryDependencies::new(),
             options: Default::default(),
+            env_vars: Default::default(),
             files_to_delete_static: vec![],
             header_directories: vec![Path::new("include").to_path_buf()],
         }
@@ -66,6 +71,11 @@ impl CMakeLibrary {
 
     pub fn depends(mut self, library: Box<dyn Library>) -> Self {
         self.dependencies = self.dependencies.push(library);
+        self
+    }
+
+    pub fn env(mut self, key: impl Into<OsString>, value: impl Into<OsString>) -> Self {
+        self.env_vars.insert(key.into(), value.into());
         self
     }
 
@@ -190,9 +200,7 @@ impl Library for CMakeLibrary {
         }
 
         if context.is_android() {
-            configure_android_path(&mut config);
-            config.define("CMAKE_SYSTEM_NAME", "Android");
-            config.define("ANDROID_PLATFORM", context.android_target_api());
+            configure_android_path(&mut config, context);
         }
 
         let ld_library_paths = self
@@ -205,10 +213,11 @@ impl Library for CMakeLibrary {
             config.cflag(format!("-L{}", library_path.display()));
         }
 
-        let mut pkg_config_paths = self.all_pkg_config_directories(context);
+        let mut pkg_config_paths = vec![];
         if let Ok(ref path) = std::env::var("PKG_CONFIG_PATH") {
-            std::env::split_paths(path).for_each(|path| pkg_config_paths.push(path));
+            pkg_config_paths.extend(std::env::split_paths(path));
         }
+        pkg_config_paths.extend(self.all_pkg_config_directories(context));
         let pkg_config_path = std::env::join_paths(&pkg_config_paths)?;
 
         config.env("PKG_CONFIG_PATH", &pkg_config_path);
@@ -222,6 +231,15 @@ impl Library for CMakeLibrary {
 
         for define in defines {
             config.define(&define.0, &define.1);
+        }
+
+        for (k, v) in self.env_vars.iter() {
+            config.env(k, v);
+        }
+
+        for (k, v) in self.all_native_library_vars(context) {
+            println!("{:?}: {:?}", &k, &v);
+            config.define(k, v);
         }
 
         config.build();
@@ -380,7 +398,7 @@ impl CMakeLibraryDefines {
     }
 }
 
-fn configure_android_path(command: &mut Config) {
+fn configure_android_path(config: &mut Config, context: &LibraryCompilationContext) {
     let ndk = ndk_build::ndk::Ndk::from_env().unwrap();
 
     let new_path = format!(
@@ -389,11 +407,18 @@ fn configure_android_path(command: &mut Config) {
         std::env::var("PATH").expect("PATH must be set")
     );
 
-    command.env("PATH", new_path);
+    config.env("PATH", new_path);
 
     let ndk_root = std::env::var("ANDROID_NDK")
         .or_else(|_| std::env::var("NDK_HOME"))
         .expect("ANDROID_NDK or NDK_HOME must be defined");
 
-    command.env("ANDROID_NDK_ROOT", ndk_root);
+    config.env("ANDROID_NDK_ROOT", &ndk_root);
+    config.define("ANDROID_PLATFORM", format!("android-{}",context.android_target_api()));
+    config.define("ANDROID_ABI", "arm64-v8a");
+
+    config.define("CMAKE_SYSTEM_VERSION", context.android_target_api());
+    config.define("CMAKE_SYSTEM_NAME", "Android");
+    config.define("CMAKE_ANDROID_ARCH_ABI", "arm64-v8a");
+    config.define("CMAKE_FIND_ROOT_PATH_MODE_LIBRARY", "BOTH");
 }

@@ -3,6 +3,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use std::error::Error;
+use std::ffi::OsString;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use user_error::UserFacingError;
@@ -123,7 +124,7 @@ pub trait Library: Debug + Send + Sync {
 
         exported_path = exported_path.join(
             self.compiled_library_name()
-                .file_name(self.exported_name(), context.target()),
+                .file_name(self.exported_name(), context.target(), self.is_static()),
         );
 
         // prevent from overwriting
@@ -135,8 +136,10 @@ pub trait Library: Debug + Send + Sync {
     }
 
     fn compiled_library(&self, context: &LibraryCompilationContext) -> PathBuf {
-        let library_name = self.name();
-        let compiled_library_name = self.compiled_library_name();
+        self.compiled_library_named(self.name(), self.compiled_library_name(), context)
+    }
+
+    fn compiled_library_named(&self, library_name: &str, compiled_library_name: CompiledLibraryName, context: &LibraryCompilationContext) -> PathBuf {
         for directory in self.compiled_library_directories(context) {
             if let Ok(dir) = directory.read_dir() {
                 let libraries = dir
@@ -144,7 +147,7 @@ pub trait Library: Debug + Send + Sync {
                     .map(|each| each.unwrap())
                     .filter(|each| each.path().is_file())
                     .filter(|each| {
-                        compiled_library_name.matches(library_name, &each.path(), context.target())
+                        compiled_library_name.matches(library_name, &each.path(), context.target(), self.is_static())
                     })
                     .map(|each| each.path())
                     .collect::<Vec<PathBuf>>();
@@ -177,6 +180,16 @@ pub trait Library: Debug + Send + Sync {
     /// Returns a collection of directories that contain the compiled libraries.
     /// Dependent libraries will search libraries to link within these directories.
     fn native_library_linker_libraries(&self, context: &LibraryCompilationContext) -> Vec<PathBuf>;
+    /// Returns a collection of directories that contain the compiled libraries.
+    /// Dependent libraries will search libraries to link within these directories.
+
+    /// Export env vars to the dependent libraries
+    fn native_library_vars(
+        &self,
+        _context: &LibraryCompilationContext,
+    ) -> Vec<(OsString, OsString)> {
+        vec![]
+    }
 
     /// If a native library creates a pkg-config .pc file, return a directory that contains it
     fn pkg_config_directory(&self, context: &LibraryCompilationContext) -> Option<PathBuf>;
@@ -202,6 +215,17 @@ pub trait Library: Debug + Send + Sync {
             dirs.extend(dependencies.pkg_config_directories(context));
         }
         dirs
+    }
+
+    fn all_native_library_vars(
+        &self,
+        context: &LibraryCompilationContext,
+    ) -> Vec<(OsString, OsString)> {
+        let mut env_vars = vec![];
+        if let Some(dependencies) = self.dependencies() {
+            env_vars.extend(dependencies.native_library_vars(context));
+        }
+        env_vars
     }
 
     /// Return all library prefixes (root of the build) of all dependencies
@@ -245,53 +269,62 @@ pub enum CompiledLibraryName {
 }
 
 impl CompiledLibraryName {
-    pub fn platform_library_ending(&self, target: &LibraryTarget) -> String {
+    pub fn platform_library_ending(&self, target: &LibraryTarget, is_static: bool) -> String {
         if target.is_linux() {
-            return "so".to_string();
+            return (if is_static { "a" } else { "so" }).to_string();
         }
         if target.is_mac() {
-            return "dylib".to_string();
+            return (if is_static { "a" } else { "dylib" }).to_string();
         }
 
         if target.is_android() {
-            return "so".to_string();
+            return (if is_static { "a" } else { "so" }).to_string();
         }
 
         if target.is_windows() {
-            return "dll".to_string();
+            return (if is_static { "lib" } else { "dll" }).to_string();
         }
 
         panic!("Unsupported target: {}", target)
     }
 
-    fn platform_library_name(&self, name: &str, target: &LibraryTarget) -> String {
+    fn platform_library_name(&self, name: &str, target: &LibraryTarget, is_static: bool) -> String {
         if target.is_unix() {
-            return format!("lib{}.{}", name, self.platform_library_ending(target));
+            return format!("lib{}.{}", name, self.platform_library_ending(target, is_static));
         }
         if target.is_windows() {
-            return format!("{}.{}", name, self.platform_library_ending(target));
+            return format!("{}.{}", name, self.platform_library_ending(target, is_static));
         }
 
         panic!("Unsupported target: {}", target)
     }
 
-    pub fn file_name(&self, library_name: &str, target: &LibraryTarget) -> String {
-        self.platform_library_name(library_name, target)
+    pub fn file_name(&self, library_name: &str, target: &LibraryTarget, is_static: bool) -> String {
+        self.platform_library_name(library_name, target, is_static)
     }
 
-    pub fn matches(&self, library_name: &str, path: &Path, target: &LibraryTarget) -> bool {
+    pub fn matches(
+        &self,
+        library_name: &str,
+        path: &Path,
+        target: &LibraryTarget,
+        is_static: bool,
+    ) -> bool {
         match path.file_name() {
             None => false,
             Some(actual_name) => match actual_name.to_str() {
                 None => false,
                 Some(actual_name) => match self {
                     CompiledLibraryName::Default => {
-                        let expected_name = self.platform_library_name(library_name, target);
+                        let expected_name =
+                            self.platform_library_name(library_name, target, is_static);
                         actual_name.eq_ignore_ascii_case(&expected_name)
                     }
                     CompiledLibraryName::Matching(substring) => {
-                        actual_name.contains(&format!(".{}", self.platform_library_ending(target)))
-                            && actual_name.contains(substring)
+                        actual_name.contains(&format!(
+                            ".{}",
+                            self.platform_library_ending(target, is_static)
+                        )) && actual_name.contains(substring)
                     }
                 },
             },

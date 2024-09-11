@@ -1,5 +1,6 @@
 use crate::{Library, LibraryCompilationContext};
 use std::error::Error;
+use std::ffi::OsString;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
@@ -119,6 +120,15 @@ impl LibraryDependencies {
                 paths.push(path.clone());
             }
             paths.extend(dependency.all_pkg_config_directories(options));
+        }
+        paths
+    }
+
+    pub fn native_library_vars(&self, options: &LibraryCompilationContext) -> Vec<(OsString, OsString)> {
+        let mut paths = vec![];
+        for dependency in &self.dependencies {
+            paths.extend(dependency.all_native_library_vars(options));
+            paths.extend(dependency.native_library_vars(options));
         }
         paths
     }
