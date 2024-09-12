@@ -119,7 +119,11 @@ impl Library for RustLibrary {
             let version = context.macos_target_version();
             command.env(
                 "RUSTFLAGS",
-                format!("-C link-arg=-mmacosx-version-min={}", &version),
+                format!(
+                    "-C link-arg=-mmacosx-version-min={} -C link-arg=-Wl,-headerpad,{}",
+                    &version,
+                    context.macos_headerpad()
+                ),
             );
             command.env("MACOSX_DEPLOYMENT_TARGET", &version);
         }

@@ -238,7 +238,7 @@ impl GitLocation {
 
                     let binary_name = library
                         .compiled_library_name()
-                        .file_name(library.name(), context.target());
+                        .file_name(library.name(), context.target(), false);
                     let binary_path = build_directory.join(binary_name);
 
                     if binary_path.exists() {
@@ -262,7 +262,8 @@ impl GitLocation {
                         tag,
                         library.compiled_library_name().file_name(
                             &format!("{}-{}", library.name(), context.target().to_string()),
-                            context.target()
+                            context.target(),
+                            false
                         )
                     );
 
@@ -287,7 +288,7 @@ impl GitLocation {
                     let proper_file_name = downloaded_file_name.with_file_name(
                         library
                             .compiled_library_name()
-                            .file_name(library.name(), context.target()),
+                            .file_name(library.name(), context.target(), false),
                     );
 
                     std::fs::rename(downloaded_file_name, &proper_file_name).unwrap();

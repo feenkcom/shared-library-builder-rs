@@ -8,7 +8,6 @@ use file_matcher::{FileNamed, FilesNamed};
 use rustc_version::version_meta;
 use std::error::Error;
 use std::ffi::OsString;
-use std::fmt::format;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};

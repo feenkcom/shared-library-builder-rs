@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 pub const DEFAULT_MACOSX_DEPLOYMENT_TARGET_X86_64: &str = "10.10";
 pub const DEFAULT_MACOSX_DEPLOYMENT_TARGET_AARCH64: &str = "11.0";
 pub const DEFAULT_ANDROID_TARGET_API: &str = "30";
+pub const DEFAULT_MACOS_HEADERPAD: &str = "0x500";
 
 #[derive(Debug, Clone)]
 pub struct LibraryCompilationContext {
@@ -64,6 +65,10 @@ impl LibraryCompilationContext {
                 })
                 .to_string()
             })
+    }
+
+    pub fn macos_headerpad(&self) -> String {
+        DEFAULT_MACOS_HEADERPAD.to_string()
     }
 
     pub fn android_target_api(&self) -> String {
