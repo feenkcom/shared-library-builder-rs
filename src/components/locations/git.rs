@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::fmt::Display;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -43,11 +44,18 @@ impl GitRepository {
     pub fn as_url(&self) -> Url {
         Url::parse(self.to_string().as_str()).unwrap()
     }
+
+    pub fn repository_name(&self) -> &str {
+        match self {
+            GitRepository::GitHub(_, name) => name.as_str(),
+            GitRepository::GitLab(_, name) => name.as_str(),
+        }
+    }
 }
 
-impl ToString for GitRepository {
-    fn to_string(&self) -> String {
-        match self {
+impl Display for GitRepository {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
             GitRepository::GitHub(owner, repo) => {
                 format!("https://github.com/{}/{}.git", owner, repo)
             }
@@ -55,7 +63,8 @@ impl ToString for GitRepository {
             GitRepository::GitLab(owner, repo) => {
                 format!("https://gitlab.com/{}/{}", owner, repo)
             }
-        }
+        };
+        write!(f, "{}", str)
     }
 }
 
@@ -121,11 +130,13 @@ impl GitLocation {
 
     pub(crate) fn sources_directory(
         &self,
-        default_source_directory: &Path,
+        _default_source_directory: &Path,
         context: &LibraryCompilationContext,
     ) -> PathBuf {
         match self.directory {
-            None => context.sources_root().join(default_source_directory),
+            None => context
+                .sources_root()
+                .join(self.repository.repository_name()),
             Some(ref custom_directory) => context.sources_root().join(custom_directory),
         }
     }
@@ -236,9 +247,11 @@ impl GitLocation {
                         Some(ref custom_directory) => context.build_root().join(custom_directory),
                     };
 
-                    let binary_name = library
-                        .compiled_library_name()
-                        .file_name(library.name(), context.target(), false);
+                    let binary_name = library.compiled_library_name().file_name(
+                        library.name(),
+                        context.target(),
+                        false,
+                    );
                     let binary_path = build_directory.join(binary_name);
 
                     if binary_path.exists() {
@@ -286,9 +299,11 @@ impl GitLocation {
 
                     let downloaded_file_name = download_result.file_name;
                     let proper_file_name = downloaded_file_name.with_file_name(
-                        library
-                            .compiled_library_name()
-                            .file_name(library.name(), context.target(), false),
+                        library.compiled_library_name().file_name(
+                            library.name(),
+                            context.target(),
+                            false,
+                        ),
                     );
 
                     std::fs::rename(downloaded_file_name, &proper_file_name).unwrap();
