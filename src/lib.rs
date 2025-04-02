@@ -55,3 +55,20 @@ where
         Ok(())
     })
 }
+
+pub fn build<F>(
+    source_dir: impl AsRef<Path>,
+    target_dir: impl AsRef<Path>,
+    f: F,
+) -> Result<(), Box<dyn std::error::Error>>
+where
+    F: FnOnce(LibraryTarget) -> Result<Box<dyn Library>, Box<dyn std::error::Error>>,
+{
+    with_target(|target| {
+        let library = f(target)?;
+        let context = LibraryCompilationContext::new(source_dir, target_dir, target, false);
+        let compiled_library = library.compile(&context)?;
+        println!("Compiled {}", compiled_library.display());
+        Ok(())
+    })
+}
