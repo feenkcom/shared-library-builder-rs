@@ -65,6 +65,16 @@ pub fn build<F>(
 where
     F: FnOnce(LibraryTarget) -> Result<Box<dyn Library>, Box<dyn std::error::Error>>,
 {
+    let source_dir = source_dir.as_ref();
+    if !source_dir.exists() {
+        std::fs::create_dir_all(source_dir)?;
+    }
+
+    let target_dir = target_dir.as_ref();
+    if !target_dir.exists() {
+        std::fs::create_dir_all(target_dir)?;
+    }
+
     let target = target.unwrap_or_else(|| LibraryTarget::for_current_platform());
     let library = f(target)?;
     let context = LibraryCompilationContext::new(source_dir, target_dir, target, false);
