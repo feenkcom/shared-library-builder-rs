@@ -2,6 +2,7 @@ use crate::{
     Library, LibraryCompilationContext, LibraryDependencies, LibraryLocation, LibraryOptions,
 };
 use std::error::Error;
+use std::ffi::OsString;
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -13,6 +14,7 @@ pub struct RustLibrary {
     location: LibraryLocation,
     features: Vec<String>,
     requires: Vec<String>,
+    env_vars: Vec<(OsString, OsString)>,
     options: LibraryOptions,
     package: Option<String>,
 }
@@ -24,6 +26,7 @@ impl RustLibrary {
             location,
             features: vec![],
             requires: vec![],
+            env_vars: vec![],
             options: Default::default(),
             package: None,
         }
@@ -44,6 +47,12 @@ impl RustLibrary {
     pub fn features(self, features: Vec<&str>) -> Self {
         let mut library = self;
         library.features = features.iter().map(|each| each.to_string()).collect();
+        library
+    }
+
+    pub fn env(self, key: impl Into<OsString>, value: impl Into<OsString>) -> Self {
+        let mut library = self;
+        library.env_vars.push((key.into(), value.into()));
         library
     }
 
@@ -82,6 +91,8 @@ impl Library for RustLibrary {
 
     fn force_compile(&self, context: &LibraryCompilationContext) -> Result<(), Box<dyn Error>> {
         let mut command = Command::new("cargo");
+
+        command.envs(self.env_vars.iter().map(|(k, v)| (k.as_os_str(), v.as_os_str())));
 
         if context.is_android() {
             command.arg("apk").arg("--");
