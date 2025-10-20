@@ -18,7 +18,7 @@ clap = {version = "3.2", features = [ "derive", "color" ] }
 cmake = { git = "https://github.com/syrel/cmake-rs", rev = "671eb012cb16640f14aaeb75a80e469226e12f1d", optional = true }
 ndk-build = { version = "0.9", optional = true }
 pkg-config = { version = "0.3", optional = true }
-downloader = { version = "0.2", features = ["rustls-tls"], optional = true }
+downloader = { version = "0.2", optional = true }
 url = { version = "2.2", optional = true }
 tar = { version = "0.4", optional = true }
 flate2 = { version = "1.0", optional = true }
