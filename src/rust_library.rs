@@ -1,12 +1,14 @@
 use crate::{
     Library, LibraryCompilationContext, LibraryDependencies, LibraryLocation, LibraryOptions,
 };
+use glob::glob;
+use serde::{Deserialize, Serialize};
+use std::env;
 use std::error::Error;
 use std::ffi::OsString;
-use std::path::PathBuf;
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::process::Command;
-
-use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RustLibrary {
@@ -65,6 +67,83 @@ impl RustLibrary {
     fn crate_source_directory(&self, context: &LibraryCompilationContext) -> PathBuf {
         self.source_directory(context)
     }
+
+    fn current_dir_contains_crate(&self) -> Result<bool, Box<dyn Error>> {
+        let manifest = env::current_dir()?.join("Cargo.toml");
+        if !manifest.exists() {
+            return Ok(false);
+        }
+
+        let manifest_contents = fs::read_to_string(&manifest)?;
+        let cargo_toml: toml::Value = toml::from_str(&manifest_contents)?;
+
+        if self.manifest_matches(&cargo_toml) {
+            return Ok(true);
+        }
+
+        if let Some(workspace) = cargo_toml.get("workspace") {
+            if let Some(members) = workspace
+                .get("members")
+                .and_then(|members| members.as_array())
+            {
+                let root = manifest
+                    .parent()
+                    .map(|parent| parent.to_path_buf())
+                    .unwrap_or_else(|| PathBuf::from("."));
+
+                for member in members {
+                    if let Some(member) = member.as_str() {
+                        if self.member_manifest_matches(&root, member)? {
+                            return Ok(true);
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(false)
+    }
+
+    fn member_manifest_matches(&self, root: &Path, member: &str) -> Result<bool, Box<dyn Error>> {
+        let pattern = root.join(member).join("Cargo.toml");
+        let pattern = pattern.to_string_lossy().to_string();
+
+        for manifest in glob(&pattern)? {
+            let manifest = manifest?;
+            if !manifest.exists() {
+                continue;
+            }
+
+            let manifest_contents = fs::read_to_string(&manifest)?;
+            let cargo_toml: toml::Value = toml::from_str(&manifest_contents)?;
+
+            if self.manifest_matches(&cargo_toml) {
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
+    }
+
+    fn manifest_matches(&self, manifest: &toml::Value) -> bool {
+        if let Some(package_name) = &self.package {
+            let manifest_package = manifest
+                .get("package")
+                .and_then(|package| package.get("name"))
+                .and_then(|name| name.as_str());
+
+            if Some(package_name.as_str()) == manifest_package {
+                return true;
+            }
+        }
+
+        let lib_name = manifest
+            .get("lib")
+            .and_then(|lib| lib.get("name"))
+            .and_then(|name| name.as_str());
+
+        lib_name == Some(self.name())
+    }
 }
 
 #[typetag::serde]
@@ -75,6 +154,23 @@ impl Library for RustLibrary {
 
     fn name(&self) -> &str {
         &self.name
+    }
+
+    fn source_directory(&self, context: &LibraryCompilationContext) -> PathBuf {
+        if self.current_dir_contains_crate().unwrap_or(false) {
+            return env::current_dir().unwrap();
+        }
+        self.location()
+            .sources_directory(&PathBuf::from(self.name()), context)
+    }
+
+    fn ensure_sources(&self, context: &LibraryCompilationContext) -> Result<(), Box<dyn Error>> {
+        if self.current_dir_contains_crate().unwrap_or(false) {
+            return Ok(());
+        }
+
+        let location = self.location();
+        location.ensure_sources(&PathBuf::from(self.name()), context)
     }
 
     fn dependencies(&self) -> Option<&LibraryDependencies> {
@@ -92,7 +188,11 @@ impl Library for RustLibrary {
     fn force_compile(&self, context: &LibraryCompilationContext) -> Result<(), Box<dyn Error>> {
         let mut command = Command::new("cargo");
 
-        command.envs(self.env_vars.iter().map(|(k, v)| (k.as_os_str(), v.as_os_str())));
+        command.envs(
+            self.env_vars
+                .iter()
+                .map(|(k, v)| (k.as_os_str(), v.as_os_str())),
+        );
 
         if context.is_android() {
             command.arg("apk").arg("--");

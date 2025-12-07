@@ -45,7 +45,20 @@ where
         let library = f(target)?;
 
         let target_dir = Path::new("target");
-        let src_dir = target_dir.join("src");
+
+        let src_dir = {
+            let probable_sources_root = std::env::current_dir().unwrap().parent().unwrap().to_path_buf();
+            let probable_context = LibraryCompilationContext::new(&probable_sources_root, "target", target, false);
+            let exiting_sources = library.source_directory(&probable_context);
+            
+            if exiting_sources.exists() {
+                probable_sources_root.to_path_buf()
+            }
+            else {
+                target_dir.join("src")
+            }
+        };
+        
         if !src_dir.exists() {
             std::fs::create_dir_all(src_dir.as_path())?;
         }
