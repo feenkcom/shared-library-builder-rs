@@ -37,6 +37,27 @@ where
     Ok(())
 }
 
+pub fn build_third_party<F>(f: F) -> Result<(), Box<dyn std::error::Error>>
+where
+    F: FnOnce(LibraryTarget) -> Result<Box<dyn Library>, Box<dyn std::error::Error>>,
+{
+    with_target(|target| {
+        let library = f(target)?;
+
+        let target_dir = Path::new("target");
+
+        let src_dir = { target_dir.join("src") };
+
+        if !src_dir.exists() {
+            std::fs::create_dir_all(src_dir.as_path())?;
+        }
+        let context = LibraryCompilationContext::new(src_dir, "target", target, false);
+        let compiled_library = library.compile(&context)?;
+        println!("Compiled {}", compiled_library.display());
+        Ok(())
+    })
+}
+
 pub fn build_standalone<F>(f: F) -> Result<(), Box<dyn std::error::Error>>
 where
     F: FnOnce(LibraryTarget) -> Result<Box<dyn Library>, Box<dyn std::error::Error>>,
@@ -47,18 +68,22 @@ where
         let target_dir = Path::new("target");
 
         let src_dir = {
-            let probable_sources_root = std::env::current_dir().unwrap().parent().unwrap().to_path_buf();
-            let probable_context = LibraryCompilationContext::new(&probable_sources_root, "target", target, false);
+            let probable_sources_root = std::env::current_dir()
+                .unwrap()
+                .parent()
+                .unwrap()
+                .to_path_buf();
+            let probable_context =
+                LibraryCompilationContext::new(&probable_sources_root, "target", target, false);
             let exiting_sources = library.source_directory(&probable_context);
-            
+
             if exiting_sources.exists() {
                 probable_sources_root.to_path_buf()
-            }
-            else {
+            } else {
                 target_dir.join("src")
             }
         };
-        
+
         if !src_dir.exists() {
             std::fs::create_dir_all(src_dir.as_path())?;
         }

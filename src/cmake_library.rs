@@ -206,11 +206,11 @@ impl Library for CMakeLibrary {
             .all_native_library_prefixes(context)
             .into_iter()
             .map(|each| each.join("lib"))
-            .collect::<Vec<PathBuf>>();
+            .map(|each| format!("-L{}", each.display()))
+            .collect::<Vec<String>>()
+            .join(" ");
 
-        for library_path in &ld_library_paths {
-            config.cflag(format!("-L{}", library_path.display()));
-        }
+        config.define("CMAKE_SHARED_LINKER_FLAGS", &ld_library_paths);
 
         let mut pkg_config_paths = vec![];
         if let Ok(ref path) = std::env::var("PKG_CONFIG_PATH") {
