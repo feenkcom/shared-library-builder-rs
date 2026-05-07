@@ -3,8 +3,6 @@ use std::fmt::Display;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-#[cfg(feature = "downloader")]
-use downloader::{Download, Downloader};
 use serde::{Deserialize, Serialize};
 use url::Url;
 use user_error::UserFacingError;
@@ -240,79 +238,352 @@ impl GitLocation {
         context: &LibraryCompilationContext,
     ) -> Option<PathBuf> {
         match &self.repository {
-            GitRepository::GitHub(owner, repo) => match &self.version {
-                GitVersion::Tag(tag) => {
-                    let build_directory = match self.directory {
-                        None => context.build_root().join(default_source_directory),
-                        Some(ref custom_directory) => context.build_root().join(custom_directory),
+            GitRepository::GitHub(owner, repo) => github_downloader::retrieve_prebuilt_library(
+                owner,
+                repo,
+                &self.version,
+                self.directory.as_ref(),
+                library,
+                default_source_directory,
+                context,
+            ),
+            _ => None,
+        }
+    }
+}
+
+#[cfg(feature = "downloader")]
+mod github_downloader {
+    use std::env;
+    use std::error::Error;
+    use std::fs::File;
+    use std::io::copy;
+    use std::path::{Path, PathBuf};
+
+    use downloader::{Download, Downloader};
+    use jsonwebtoken::EncodingKey;
+    use octocrab::{
+        models::{AppId, InstallationId},
+        Octocrab,
+    };
+    use reqwest::blocking::Client;
+    use secrecy::ExposeSecret;
+    use serde::Deserialize;
+    use user_error::UserFacingError;
+
+    use super::GitVersion;
+    use crate::{Library, LibraryCompilationContext};
+
+    #[derive(Debug, Deserialize)]
+    struct RepositoryMetadata {
+        private: bool,
+    }
+
+    #[derive(Debug, Deserialize)]
+    struct Release {
+        assets: Vec<ReleaseAsset>,
+    }
+
+    #[derive(Debug, Deserialize)]
+    struct ReleaseAsset {
+        id: u64,
+        name: String,
+    }
+
+    pub(super) fn retrieve_prebuilt_library(
+        owner: &str,
+        repo: &str,
+        version: &GitVersion,
+        directory: Option<&PathBuf>,
+        library: Box<dyn Library>,
+        default_source_directory: &Path,
+        context: &LibraryCompilationContext,
+    ) -> Option<PathBuf> {
+        match version {
+            GitVersion::Tag(tag) => {
+                let build_directory = match directory {
+                    None => context.build_root().join(default_source_directory),
+                    Some(custom_directory) => context.build_root().join(custom_directory),
+                };
+
+                let binary_name = library.compiled_library_name().file_name(
+                    library.name(),
+                    context.target(),
+                    false,
+                );
+                let binary_path = build_directory.join(binary_name);
+
+                if binary_path.exists() {
+                    println!("{} already exists.", binary_path.display());
+                    return Some(binary_path);
+                }
+
+                if !build_directory.exists() {
+                    std::fs::create_dir_all(&build_directory).unwrap();
+                }
+
+                let asset_name = library.compiled_library_name().file_name(
+                    &format!("{}-{}", library.name(), context.target().to_string()),
+                    context.target(),
+                    false,
+                );
+
+                let installation_token =
+                    match create_installation_token_if_configured(library.name()) {
+                        Ok(token) => token,
+                        Err(error) => {
+                            eprintln!(
+                                "Failed to create a GitHub installation token for {} due to {:?}",
+                                library.name(),
+                                error
+                            );
+                            return None;
+                        }
                     };
 
-                    let binary_name = library.compiled_library_name().file_name(
-                        library.name(),
-                        context.target(),
-                        false,
-                    );
-                    let binary_path = build_directory.join(binary_name);
+                let is_private =
+                    match repository_is_private(owner, repo, installation_token.as_deref()) {
+                        Ok(is_private) => is_private,
+                        Err(error) => {
+                            eprintln!(
+                                "Failed to detect visibility of GitHub repository {}/{} due to {:?}. Assuming public.",
+                                owner,
+                                repo,
+                                error
+                            );
+                            false
+                        }
+                    };
 
-                    if binary_path.exists() {
-                        println!("{} already exists.", binary_path.display());
-                        return Some(binary_path);
-                    }
+                if is_private {
+                    let Some(token) = installation_token else {
+                        eprintln!(
+                            "GitHub repository {}/{} is private, but {} credentials are not configured.",
+                            owner,
+                            repo,
+                            app_env_var_prefix(library.name())
+                        );
+                        return None;
+                    };
 
-                    if !build_directory.exists() {
-                        std::fs::create_dir_all(&build_directory).unwrap();
-                    }
-
-                    let mut downloader = Downloader::builder()
-                        .download_folder(&build_directory)
-                        .build()
-                        .unwrap();
-
-                    let url = format!(
-                        "https://github.com/{}/{}/releases/download/{}/{}",
+                    match download_private_release_asset(
                         owner,
                         repo,
                         tag,
-                        library.compiled_library_name().file_name(
-                            &format!("{}-{}", library.name(), context.target().to_string()),
-                            context.target(),
-                            false
-                        )
-                    );
-
-                    let to_download = Download::new(&url);
-
-                    let mut result = match downloader.download(&[to_download]) {
-                        Ok(result) => result,
+                        &asset_name,
+                        &binary_path,
+                        &token,
+                    ) {
+                        Ok(()) => Some(binary_path),
                         Err(error) => {
-                            eprintln!("Failed to download {} due to {:?}", &url, error);
-                            return None;
+                            eprintln!(
+                                "Failed to download private GitHub release asset {} from {}/{}@{} due to {:?}",
+                                asset_name,
+                                owner,
+                                repo,
+                                tag,
+                                error
+                            );
+                            None
                         }
-                    };
-                    let download_result = match result.remove(0) {
-                        Ok(result) => result,
-                        Err(error) => {
-                            eprintln!("Failed to download {} due to {:?}", &url, error);
-                            return None;
-                        }
-                    };
-
-                    let downloaded_file_name = download_result.file_name;
-                    let proper_file_name = downloaded_file_name.with_file_name(
-                        library.compiled_library_name().file_name(
-                            library.name(),
-                            context.target(),
-                            false,
-                        ),
-                    );
-
-                    std::fs::rename(downloaded_file_name, &proper_file_name).unwrap();
-
-                    Some(proper_file_name)
+                    }
+                } else {
+                    download_public_release_asset(
+                        owner,
+                        repo,
+                        tag,
+                        &asset_name,
+                        &build_directory,
+                        &binary_path,
+                    )
                 }
-                _ => None,
-            },
+            }
             _ => None,
         }
+    }
+
+    fn download_public_release_asset(
+        owner: &str,
+        repo: &str,
+        tag: &str,
+        asset_name: &str,
+        build_directory: &Path,
+        binary_path: &Path,
+    ) -> Option<PathBuf> {
+        let mut downloader = Downloader::builder()
+            .download_folder(build_directory)
+            .build()
+            .unwrap();
+
+        let url =
+            format!("https://github.com/{owner}/{repo}/releases/download/{tag}/{asset_name}");
+
+        let to_download = Download::new(&url);
+
+        let mut result = match downloader.download(&[to_download]) {
+            Ok(result) => result,
+            Err(error) => {
+                eprintln!("Failed to download {} due to {:?}", &url, error);
+                return None;
+            }
+        };
+        let download_result = match result.remove(0) {
+            Ok(result) => result,
+            Err(error) => {
+                eprintln!("Failed to download {} due to {:?}", &url, error);
+                return None;
+            }
+        };
+
+        let downloaded_file_name = download_result.file_name;
+
+        std::fs::rename(downloaded_file_name, binary_path).unwrap();
+
+        Some(binary_path.to_path_buf())
+    }
+
+    fn download_private_release_asset(
+        owner: &str,
+        repo: &str,
+        tag: &str,
+        asset_name: &str,
+        output_path: &Path,
+        token: &str,
+    ) -> Result<(), Box<dyn Error>> {
+        let client = Client::new();
+
+        let release: Release = client
+            .get(format!(
+                "https://api.github.com/repos/{owner}/{repo}/releases/tags/{tag}"
+            ))
+            .bearer_auth(token)
+            .header("Accept", "application/vnd.github+json")
+            .header("User-Agent", "shared-library-builder")
+            .send()?
+            .error_for_status()?
+            .json()?;
+
+        let asset = release
+            .assets
+            .into_iter()
+            .find(|asset| asset.name == asset_name)
+            .ok_or_else(|| {
+                UserFacingError::new("Failed to retrieve prebuilt library").reason(format!(
+                    "Could not find asset {:?} in release {:?} of {}/{}",
+                    asset_name, tag, owner, repo
+                ))
+            })?;
+
+        let mut response = client
+            .get(format!(
+                "https://api.github.com/repos/{owner}/{repo}/releases/assets/{}",
+                asset.id
+            ))
+            .bearer_auth(token)
+            .header("Accept", "application/octet-stream")
+            .header("User-Agent", "shared-library-builder")
+            .send()?
+            .error_for_status()?;
+
+        let mut file = File::create(output_path)?;
+
+        copy(&mut response, &mut file)?;
+
+        println!(
+            "Downloaded {owner}/{repo} release {tag} asset {asset_name} to {}",
+            output_path.display()
+        );
+
+        Ok(())
+    }
+
+    fn repository_is_private(
+        owner: &str,
+        repo: &str,
+        token: Option<&str>,
+    ) -> Result<bool, Box<dyn Error>> {
+        let runtime = tokio::runtime::Runtime::new()?;
+        let owner = owner.to_string();
+        let repo = repo.to_string();
+        let token = token.map(ToOwned::to_owned);
+
+        runtime.block_on(async move {
+            let octocrab = match token {
+                Some(token) => Octocrab::builder().personal_token(token).build()?,
+                None => Octocrab::builder().build()?,
+            };
+
+            let metadata: RepositoryMetadata = octocrab
+                .get(format!("repos/{owner}/{repo}"), None::<&()>)
+                .await?;
+
+            Ok(metadata.private)
+        })
+    }
+
+    fn create_installation_token_if_configured(
+        library_name: &str,
+    ) -> Result<Option<String>, Box<dyn Error>> {
+        let app_id_key = app_env_var(library_name, "APP_ID");
+        let installation_id_key = app_env_var(library_name, "APP_INSTALLATION_ID");
+        let private_key_key = app_env_var(library_name, "APP_PRIVATE_KEY");
+
+        let app_id = env::var(&app_id_key).ok();
+        let installation_id = env::var(&installation_id_key).ok();
+        let private_key_pem = env::var(&private_key_key).ok();
+
+        if app_id.is_none() && installation_id.is_none() && private_key_pem.is_none() {
+            return Ok(None);
+        }
+
+        let app_id: u64 = app_id
+            .ok_or_else(|| missing_env_var_error(&app_id_key))?
+            .parse()?;
+        let installation_id: u64 = installation_id
+            .ok_or_else(|| missing_env_var_error(&installation_id_key))?
+            .parse()?;
+        let private_key_pem = private_key_pem
+            .ok_or_else(|| missing_env_var_error(&private_key_key))?
+            .replace("\\n", "\n");
+
+        let runtime = tokio::runtime::Runtime::new()?;
+        let token = runtime.block_on(async move {
+            let key = EncodingKey::from_rsa_pem(private_key_pem.as_bytes())?;
+
+            let app_client = Octocrab::builder().app(AppId(app_id), key).build()?;
+
+            let (_github, token) = app_client
+                .installation_and_token(InstallationId(installation_id))
+                .await?;
+
+            Ok::<_, Box<dyn Error>>(token.expose_secret().to_string())
+        })?;
+
+        Ok(Some(token))
+    }
+
+    fn app_env_var(library_name: &str, suffix: &str) -> String {
+        format!("{}_{}", app_env_var_prefix(library_name), suffix)
+    }
+
+    fn app_env_var_prefix(library_name: &str) -> String {
+        library_name
+            .chars()
+            .map(|character| {
+                if character.is_ascii_alphanumeric() {
+                    character.to_ascii_uppercase()
+                } else {
+                    '_'
+                }
+            })
+            .collect()
+    }
+
+    fn missing_env_var_error(key: &str) -> UserFacingError {
+        UserFacingError::new("Missing GitHub App configuration")
+            .reason(format!("Environment variable {key} is not set"))
+            .help(
+                "Set the per-library GitHub App environment variables before retrieving private release assets",
+            )
     }
 }

@@ -19,6 +19,11 @@ cmake = { git = "https://github.com/syrel/cmake-rs", rev = "671eb012cb16640f14aa
 ndk-build = { version = "0.9", optional = true }
 pkg-config = { version = "0.3", optional = true }
 downloader = { version = "0.2", optional = true }
+jsonwebtoken = { version = "10.3", optional = true }
+octocrab = { version = "0.50", optional = true }
+reqwest = { version = "0.13", features = ["blocking", "json"], optional = true }
+secrecy = { version = "0.10", optional = true }
+tokio = { version = "1", features = ["rt-multi-thread"], optional = true }
 url = { version = "2.2", optional = true }
 tar = { version = "0.4", optional = true }
 flate2 = { version = "1.0", optional = true }
@@ -36,6 +41,7 @@ serde_json = "1.0"
 
 [features]
 cmake-library = [ "cmake", "pkg-config", "ndk-build" ]
+downloader = [ "dep:downloader", "dep:jsonwebtoken", "dep:octocrab", "dep:reqwest", "dep:secrecy", "dep:tokio" ]
 git-location = ["url"]
 zip-location = ["zip", "zip-extensions", "url", "downloader"]
 tar-location = ["tar", "flate2", "xz2", "url", "downloader"]
