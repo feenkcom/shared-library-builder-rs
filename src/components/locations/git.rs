@@ -148,6 +148,7 @@ impl GitLocation {
 
         if !source_directory.exists() {
             let result = Command::new("git")
+                .env("GIT_TERMINAL_PROMPT", "0")
                 .arg("clone")
                 .arg(self.repository.to_string())
                 .arg(&source_directory)
@@ -173,6 +174,7 @@ impl GitLocation {
             .unwrap();
 
         Command::new("git")
+            .env("GIT_TERMINAL_PROMPT", "0")
             .current_dir(&source_directory)
             .arg("fetch")
             .arg("--all")
@@ -200,6 +202,7 @@ impl GitLocation {
                 .status()
                 .unwrap(),
             GitVersion::Latest => Command::new("git")
+                .env("GIT_TERMINAL_PROMPT", "0")
                 .current_dir(&source_directory)
                 .arg("pull")
                 .status()
@@ -317,11 +320,13 @@ mod github_downloader {
                     ) {
                         Ok(()) => Some(binary_path),
                         Err(error) => {
-                            eprintln!(
-                                "Failed to download private GitHub release asset {} from {}/{}@{} due to {:?}",
-                                asset_name, owner, repo, tag, error
+                            fail_prebuilt_library_retrieval(
+                                format!(
+                                    "Failed to download private GitHub release asset {} from {}/{}@{}",
+                                    asset_name, owner, repo, tag
+                                ),
+                                error,
                             );
-                            None
                         }
                     },
                     Ok(None) => download_public_release_asset(
@@ -333,12 +338,13 @@ mod github_downloader {
                         &binary_path,
                     ),
                     Err(error) => {
-                        eprintln!(
-                            "Failed to read GitHub authentication configuration for {} due to {:?}",
-                            library.name(),
+                        fail_prebuilt_library_retrieval(
+                            format!(
+                                "Failed to read GitHub authentication configuration for {}",
+                                library.name()
+                            ),
                             error
                         );
-                        None
                     }
                 }
             }
@@ -502,5 +508,16 @@ mod github_downloader {
         UserFacingError::new("Missing GitHub authentication configuration")
             .reason(format!("Environment variable {key} is not set"))
             .help("Set either the per-library installation token, or the per-library customer id, private key, and auth server URL")
+    }
+
+    fn fail_prebuilt_library_retrieval(reason: String, error: Box<dyn Error>) -> ! {
+        panic!(
+            "{}",
+            UserFacingError::new("Failed to retrieve prebuilt library")
+                .reason(format!("{reason}: {error:?}"))
+                .help(
+                    "Fix the per-library GitHub authentication environment variables or the release asset configuration",
+                )
+        )
     }
 }
