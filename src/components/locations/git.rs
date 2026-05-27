@@ -255,40 +255,18 @@ impl GitLocation {
 #[cfg(feature = "downloader")]
 mod github_downloader {
     use std::env;
+    use std::env::VarError;
     use std::error::Error;
-    use std::fs::File;
-    use std::io::copy;
     use std::path::{Path, PathBuf};
 
     use downloader::{Download, Downloader};
-    use jsonwebtoken::EncodingKey;
-    use octocrab::{
-        models::{AppId, InstallationId},
-        Octocrab,
+    use feenk_download_auth_client::{
+        download_release_asset_with_env_auth, EnvDownloadRequest, InstallationTokenSource,
     };
-    use reqwest::blocking::Client;
-    use secrecy::ExposeSecret;
-    use serde::Deserialize;
     use user_error::UserFacingError;
 
     use super::GitVersion;
     use crate::{Library, LibraryCompilationContext};
-
-    #[derive(Debug, Deserialize)]
-    struct RepositoryMetadata {
-        private: bool,
-    }
-
-    #[derive(Debug, Deserialize)]
-    struct Release {
-        assets: Vec<ReleaseAsset>,
-    }
-
-    #[derive(Debug, Deserialize)]
-    struct ReleaseAsset {
-        id: u64,
-        name: String,
-    }
 
     pub(super) fn retrieve_prebuilt_library(
         owner: &str,
@@ -328,74 +306,40 @@ mod github_downloader {
                     false,
                 );
 
-                let installation_token =
-                    match create_installation_token_if_configured(library.name()) {
-                        Ok(token) => token,
-                        Err(error) => {
-                            eprintln!(
-                                "Failed to create a GitHub installation token for {} due to {:?}",
-                                library.name(),
-                                error
-                            );
-                            return None;
-                        }
-                    };
-
-                let is_private =
-                    match repository_is_private(owner, repo, installation_token.as_deref()) {
-                        Ok(is_private) => is_private,
-                        Err(error) => {
-                            eprintln!(
-                                "Failed to detect visibility of GitHub repository {}/{} due to {:?}. Assuming public.",
-                                owner,
-                                repo,
-                                error
-                            );
-                            false
-                        }
-                    };
-
-                if is_private {
-                    let Some(token) = installation_token else {
-                        eprintln!(
-                            "GitHub repository {}/{} is private, but {} credentials are not configured.",
-                            owner,
-                            repo,
-                            app_env_var_prefix(library.name())
-                        );
-                        return None;
-                    };
-
-                    match download_private_release_asset(
+                match installation_token_source(library.name()) {
+                    Ok(Some(token_source)) => match download_private_release_asset(
                         owner,
                         repo,
                         tag,
                         &asset_name,
                         &binary_path,
-                        &token,
+                        token_source,
                     ) {
                         Ok(()) => Some(binary_path),
                         Err(error) => {
                             eprintln!(
                                 "Failed to download private GitHub release asset {} from {}/{}@{} due to {:?}",
-                                asset_name,
-                                owner,
-                                repo,
-                                tag,
-                                error
+                                asset_name, owner, repo, tag, error
                             );
                             None
                         }
-                    }
-                } else {
-                    download_public_release_asset(
+                    },
+                    Ok(None) => download_public_release_asset(
                         owner,
                         repo,
                         tag,
                         &asset_name,
                         &build_directory,
                         &binary_path,
-                    )
+                    ),
+                    Err(error) => {
+                        eprintln!(
+                            "Failed to read GitHub authentication configuration for {} due to {:?}",
+                            library.name(),
+                            error
+                        );
+                        None
+                    }
                 }
             }
             _ => None,
@@ -448,118 +392,93 @@ mod github_downloader {
         tag: &str,
         asset_name: &str,
         output_path: &Path,
-        token: &str,
+        token_source: InstallationTokenSource,
     ) -> Result<(), Box<dyn Error>> {
-        let client = Client::new();
+        let runtime = tokio::runtime::Runtime::new()?;
+        let repo = format!("{owner}/{repo}");
+        let tag = tag.to_string();
+        let asset_name = asset_name.to_string();
+        let output_path = output_path.to_path_buf();
+        let output_display = output_path.display().to_string();
 
-        let release: Release = client
-            .get(format!(
-                "https://api.github.com/repos/{owner}/{repo}/releases/tags/{tag}"
-            ))
-            .bearer_auth(token)
-            .header("Accept", "application/vnd.github+json")
-            .header("User-Agent", "shared-library-builder")
-            .send()?
-            .error_for_status()?
-            .json()?;
-
-        let asset = release
-            .assets
-            .into_iter()
-            .find(|asset| asset.name == asset_name)
-            .ok_or_else(|| {
-                UserFacingError::new("Failed to retrieve prebuilt library").reason(format!(
-                    "Could not find asset {:?} in release {:?} of {}/{}",
-                    asset_name, tag, owner, repo
-                ))
-            })?;
-
-        let mut response = client
-            .get(format!(
-                "https://api.github.com/repos/{owner}/{repo}/releases/assets/{}",
-                asset.id
-            ))
-            .bearer_auth(token)
-            .header("Accept", "application/octet-stream")
-            .header("User-Agent", "shared-library-builder")
-            .send()?
-            .error_for_status()?;
-
-        let mut file = File::create(output_path)?;
-
-        copy(&mut response, &mut file)?;
+        let asset = runtime.block_on(async move {
+            download_release_asset_with_env_auth(EnvDownloadRequest {
+                token_source,
+                repo,
+                github_owner: None,
+                tag: Some(tag),
+                asset_name,
+                output_path,
+            })
+            .await
+        })?;
 
         println!(
-            "Downloaded {owner}/{repo} release {tag} asset {asset_name} to {}",
-            output_path.display()
+            "Downloaded release asset {} to {}",
+            asset.name,
+            output_display
         );
 
         Ok(())
     }
 
-    fn repository_is_private(
-        owner: &str,
-        repo: &str,
-        token: Option<&str>,
-    ) -> Result<bool, Box<dyn Error>> {
-        let runtime = tokio::runtime::Runtime::new()?;
-        let owner = owner.to_string();
-        let repo = repo.to_string();
-        let token = token.map(ToOwned::to_owned);
-
-        runtime.block_on(async move {
-            let octocrab = match token {
-                Some(token) => Octocrab::builder().personal_token(token).build()?,
-                None => Octocrab::builder().build()?,
-            };
-
-            let metadata: RepositoryMetadata = octocrab
-                .get(format!("repos/{owner}/{repo}"), None::<&()>)
-                .await?;
-
-            Ok(metadata.private)
-        })
-    }
-
-    fn create_installation_token_if_configured(
+    fn installation_token_source(
         library_name: &str,
-    ) -> Result<Option<String>, Box<dyn Error>> {
-        let app_id_key = app_env_var(library_name, "APP_ID");
-        let installation_id_key = app_env_var(library_name, "APP_INSTALLATION_ID");
-        let private_key_key = app_env_var(library_name, "APP_PRIVATE_KEY");
+    ) -> Result<Option<InstallationTokenSource>, Box<dyn Error>> {
+        let installation_token_key = app_env_var(library_name, "INSTALLATION_TOKEN");
 
-        let app_id = env::var(&app_id_key).ok();
-        let installation_id = env::var(&installation_id_key).ok();
-        let private_key_pem = env::var(&private_key_key).ok();
+        if optional_env_value(&installation_token_key)?.is_some() {
+            return Ok(Some(InstallationTokenSource::token_env(
+                installation_token_key,
+            )));
+        }
 
-        if app_id.is_none() && installation_id.is_none() && private_key_pem.is_none() {
+        let private_key_key = app_env_var(library_name, "PRIVATE_KEY");
+        let customer_id_key = app_env_var(library_name, "CUSTOMER_ID");
+        let auth_server_url_key = app_env_var(library_name, "AUTH_SERVER_URL");
+        let auth_server_key = app_env_var(library_name, "AUTH_SERVER");
+
+        let private_key = optional_env_value(&private_key_key)?;
+        let customer_id = optional_env_value(&customer_id_key)?;
+        let auth_server_url = optional_env_value(&auth_server_url_key)?
+            .or(optional_env_value(&auth_server_key)?);
+
+        if private_key.is_none() && customer_id.is_none() && auth_server_url.is_none() {
             return Ok(None);
         }
 
-        let app_id: u64 = app_id
-            .ok_or_else(|| missing_env_var_error(&app_id_key))?
-            .parse()?;
-        let installation_id: u64 = installation_id
-            .ok_or_else(|| missing_env_var_error(&installation_id_key))?
-            .parse()?;
-        let private_key_pem = private_key_pem
-            .ok_or_else(|| missing_env_var_error(&private_key_key))?
-            .replace("\\n", "\n");
+        let Some(server_url) = auth_server_url else {
+            return Err(Box::new(missing_env_var_error(&auth_server_url_key)));
+        };
 
-        let runtime = tokio::runtime::Runtime::new()?;
-        let token = runtime.block_on(async move {
-            let key = EncodingKey::from_rsa_pem(private_key_pem.as_bytes())?;
+        if customer_id.is_none() {
+            return Err(Box::new(missing_env_var_error(&customer_id_key)));
+        }
 
-            let app_client = Octocrab::builder().app(AppId(app_id), key).build()?;
+        if private_key.is_none() {
+            return Err(Box::new(missing_env_var_error(&private_key_key)));
+        }
 
-            let (_github, token) = app_client
-                .installation_and_token(InstallationId(installation_id))
-                .await?;
+        Ok(Some(InstallationTokenSource::customer_env(
+            server_url,
+            customer_id_key,
+            private_key_key,
+        )))
+    }
 
-            Ok::<_, Box<dyn Error>>(token.expose_secret().to_string())
-        })?;
-
-        Ok(Some(token))
+    fn optional_env_value(key: &str) -> Result<Option<String>, Box<dyn Error>> {
+        match env::var(key) {
+            Ok(value) if value.trim().is_empty() => Ok(None),
+            Ok(value) => Ok(Some(value)),
+            Err(VarError::NotPresent) => Ok(None),
+            Err(error) => Err(Box::new(
+                UserFacingError::new("Invalid GitHub authentication configuration")
+                    .reason(format!(
+                        "Environment variable {key} could not be read: {error}"
+                    ))
+                    .help("Set valid per-library GitHub authentication environment variables"),
+            )),
+        }
     }
 
     fn app_env_var(library_name: &str, suffix: &str) -> String {
@@ -580,10 +499,8 @@ mod github_downloader {
     }
 
     fn missing_env_var_error(key: &str) -> UserFacingError {
-        UserFacingError::new("Missing GitHub App configuration")
+        UserFacingError::new("Missing GitHub authentication configuration")
             .reason(format!("Environment variable {key} is not set"))
-            .help(
-                "Set the per-library GitHub App environment variables before retrieving private release assets",
-            )
+            .help("Set either the per-library installation token, or the per-library customer id, private key, and auth server URL")
     }
 }
