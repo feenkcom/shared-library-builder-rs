@@ -5,8 +5,64 @@ use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::ffi::OsString;
 use std::fmt::Debug;
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use user_error::UserFacingError;
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct CompiledPathBuf(PathBuf);
+
+impl CompiledPathBuf {
+    pub fn new(path: impl Into<PathBuf>) -> Self {
+        Self(path.into())
+    }
+
+    pub fn as_path(&self) -> &Path {
+        self.0.as_path()
+    }
+
+    pub fn into_path_buf(self) -> PathBuf {
+        self.0
+    }
+}
+
+impl AsRef<Path> for CompiledPathBuf {
+    fn as_ref(&self) -> &Path {
+        self.as_path()
+    }
+}
+
+impl Deref for CompiledPathBuf {
+    type Target = Path;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_path()
+    }
+}
+
+impl From<PathBuf> for CompiledPathBuf {
+    fn from(path: PathBuf) -> Self {
+        Self::new(path)
+    }
+}
+
+impl From<CompiledPathBuf> for PathBuf {
+    fn from(path: CompiledPathBuf) -> Self {
+        path.into_path_buf()
+    }
+}
+
+impl PartialEq<PathBuf> for CompiledPathBuf {
+    fn eq(&self, other: &PathBuf) -> bool {
+        self.as_path() == other.as_path()
+    }
+}
+
+impl PartialEq<CompiledPathBuf> for PathBuf {
+    fn eq(&self, other: &CompiledPathBuf) -> bool {
+        self.as_path() == other.as_path()
+    }
+}
 
 #[typetag::serde(tag = "type")]
 pub trait Library: Debug + Send + Sync {
@@ -99,7 +155,7 @@ pub trait Library: Debug + Send + Sync {
         if self.is_shared() {
             self.export_compiled_library(context)
         } else {
-            Ok(self.compiled_library(context))
+            Ok(self.compiled_library(context).into_path_buf())
         }
     }
 
@@ -112,34 +168,51 @@ pub trait Library: Debug + Send + Sync {
         context: &LibraryCompilationContext,
     ) -> Result<PathBuf, Box<dyn Error>> {
         let compiled_library = self.compiled_library(context);
+        let exported_path = self.exported_library_path(context);
+        let exported_directory = exported_path.parent().unwrap();
 
-        let mut exported_path = context
-            .build_root()
-            .join(context.target().to_string())
-            .join(context.profile());
-
-        if !exported_path.exists() {
-            std::fs::create_dir_all(&exported_path)?;
+        if !exported_directory.exists() {
+            std::fs::create_dir_all(exported_directory)?;
         }
 
-        exported_path = exported_path.join(
-            self.compiled_library_name()
-                .file_name(self.exported_name(), context.target(), self.is_static()),
-        );
-
         // prevent from overwriting
-        if exported_path != compiled_library {
-            std::fs::copy(compiled_library, &exported_path)?;
+        if exported_path != compiled_library.as_path() {
+            std::fs::copy(compiled_library.as_path(), &exported_path)?;
         }
 
         Ok(exported_path)
     }
 
-    fn compiled_library(&self, context: &LibraryCompilationContext) -> PathBuf {
+    fn exported_library_path(&self, context: &LibraryCompilationContext) -> PathBuf {
+        context
+            .build_root()
+            .join(context.target().to_string())
+            .join(context.profile())
+            .join(self.compiled_library_name().file_name(
+                self.exported_name(),
+                context.target(),
+                self.is_static(),
+            ))
+    }
+
+    fn prebuilt_library_asset_name(&self, context: &LibraryCompilationContext) -> String {
+        self.compiled_library_name().file_name(
+            &format!("{}-{}", self.name(), context.target()),
+            context.target(),
+            false,
+        )
+    }
+
+    fn compiled_library(&self, context: &LibraryCompilationContext) -> CompiledPathBuf {
         self.compiled_library_named(self.name(), self.compiled_library_name(), context)
     }
 
-    fn compiled_library_named(&self, library_name: &str, compiled_library_name: CompiledLibraryName, context: &LibraryCompilationContext) -> PathBuf {
+    fn compiled_library_named(
+        &self,
+        library_name: &str,
+        compiled_library_name: CompiledLibraryName,
+        context: &LibraryCompilationContext,
+    ) -> CompiledPathBuf {
         for directory in self.compiled_library_directories(context) {
             if let Ok(dir) = directory.read_dir() {
                 let libraries = dir
@@ -147,13 +220,18 @@ pub trait Library: Debug + Send + Sync {
                     .map(|each| each.unwrap())
                     .filter(|each| each.path().is_file())
                     .filter(|each| {
-                        compiled_library_name.matches(library_name, &each.path(), context.target(), self.is_static())
+                        compiled_library_name.matches(
+                            library_name,
+                            &each.path(),
+                            context.target(),
+                            self.is_static(),
+                        )
                     })
                     .map(|each| each.path())
                     .collect::<Vec<PathBuf>>();
 
                 if !libraries.is_empty() {
-                    return libraries.get(0).unwrap().clone();
+                    return libraries.get(0).unwrap().clone().into();
                 }
             }
         }
@@ -290,10 +368,18 @@ impl CompiledLibraryName {
 
     fn platform_library_name(&self, name: &str, target: &LibraryTarget, is_static: bool) -> String {
         if target.is_unix() {
-            return format!("lib{}.{}", name, self.platform_library_ending(target, is_static));
+            return format!(
+                "lib{}.{}",
+                name,
+                self.platform_library_ending(target, is_static)
+            );
         }
         if target.is_windows() {
-            return format!("{}.{}", name, self.platform_library_ending(target, is_static));
+            return format!(
+                "{}.{}",
+                name,
+                self.platform_library_ending(target, is_static)
+            );
         }
 
         panic!("Unsupported target: {}", target)

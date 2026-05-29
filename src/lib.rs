@@ -11,7 +11,7 @@ mod rust_library;
 pub use components::*;
 use std::path::Path;
 
-pub use crate::library::{CompiledLibraryName, Library};
+pub use crate::library::{CompiledLibraryName, CompiledPathBuf, Library};
 #[cfg(feature = "cmake-library")]
 pub use cmake_library::CMakeLibrary;
 pub use rust_library::RustLibrary;

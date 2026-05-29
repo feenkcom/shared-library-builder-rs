@@ -275,24 +275,15 @@ mod github_downloader {
         owner: &str,
         repo: &str,
         version: &GitVersion,
-        directory: Option<&PathBuf>,
+        _directory: Option<&PathBuf>,
         library: Box<dyn Library>,
-        default_source_directory: &Path,
+        _default_source_directory: &Path,
         context: &LibraryCompilationContext,
     ) -> Option<PathBuf> {
         match version {
             GitVersion::Tag(tag) => {
-                let build_directory = match directory {
-                    None => context.build_root().join(default_source_directory),
-                    Some(custom_directory) => context.build_root().join(custom_directory),
-                };
-
-                let binary_name = library.compiled_library_name().file_name(
-                    library.name(),
-                    context.target(),
-                    false,
-                );
-                let binary_path = build_directory.join(binary_name);
+                let binary_path = library.exported_library_path(context);
+                let build_directory = binary_path.parent().unwrap();
 
                 if binary_path.exists() {
                     println!("{} already exists.", binary_path.display());
@@ -300,14 +291,10 @@ mod github_downloader {
                 }
 
                 if !build_directory.exists() {
-                    std::fs::create_dir_all(&build_directory).unwrap();
+                    std::fs::create_dir_all(build_directory).unwrap();
                 }
 
-                let asset_name = library.compiled_library_name().file_name(
-                    &format!("{}-{}", library.name(), context.target().to_string()),
-                    context.target(),
-                    false,
-                );
+                let asset_name = library.prebuilt_library_asset_name(context);
 
                 match installation_token_source(library.name()) {
                     Ok(Some(token_source)) => match download_private_release_asset(
@@ -334,7 +321,7 @@ mod github_downloader {
                         repo,
                         tag,
                         &asset_name,
-                        &build_directory,
+                        build_directory,
                         &binary_path,
                     ),
                     Err(error) => {

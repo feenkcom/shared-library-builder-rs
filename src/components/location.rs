@@ -57,7 +57,13 @@ impl LibraryLocation {
             LibraryLocation::Git(git_location) => {
                 git_location.retrieve_prebuilt_library(library, default_source_directory, context)
             }
-            _ => None,
+            LibraryLocation::Path(path_location) => {
+                path_location.retrieve_prebuilt_library(library, context)
+            }
+            #[cfg(feature = "tar-location")]
+            LibraryLocation::Tar(_) => None,
+            #[cfg(feature = "zip-location")]
+            LibraryLocation::Zip(_) => None,
         }
     }
 
