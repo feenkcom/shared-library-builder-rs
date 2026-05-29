@@ -52,6 +52,12 @@ impl From<CompiledPathBuf> for PathBuf {
     }
 }
 
+impl From<CompiledPathBuf> for OsString {
+    fn from(path: CompiledPathBuf) -> Self {
+        path.into_path_buf().into_os_string()
+    }
+}
+
 impl PartialEq<PathBuf> for CompiledPathBuf {
     fn eq(&self, other: &PathBuf) -> bool {
         self.as_path() == other.as_path()
